@@ -1,4 +1,3 @@
-cat > config/database.php <<'EOF'
 <?php
 
 $host = getenv('DB_HOST') ?: 'mariadb';
@@ -19,4 +18,4 @@ try {
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }
-EOF
+
