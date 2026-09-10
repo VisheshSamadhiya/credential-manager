@@ -1,0 +1,6 @@
+-- Credential Manager database schema is managed separately.
+-- IMPORTANT: credentials.credential_password must be TEXT (or another sufficiently
+-- large string type) because encrypted values are stored here.
+--
+-- Example migration for an existing database:
+-- ALTER TABLE credentials MODIFY credential_password TEXT NOT NULL;
