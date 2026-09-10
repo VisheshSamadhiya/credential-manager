@@ -1,74 +1,306 @@
+/* =========================================================
+   Credential Manager
+   Shared JavaScript
+   ========================================================= */
+
+
 /*
 |--------------------------------------------------------------------------
-| Password Show / Hide
+| Get Password Input
 |--------------------------------------------------------------------------
 */
 
-function togglePassword() {
+function getPasswordInput() {
 
-    const passwordInput =
-        document.getElementById('credentialPassword') ||
-        document.getElementById('new_password');
+    return (
 
-    const button =
-        document.querySelector('.toggle-password');
+        document.getElementById(
+            'credentialPassword'
+        )
 
-    if (!passwordInput || !button) {
-        return;
-    }
+        ||
 
-    if (passwordInput.type === 'password') {
+        document.getElementById(
+            'new_password'
+        )
 
-        passwordInput.type = 'text';
+    );
 
-        button.textContent = 'Hide';
-
-    } else {
-
-        passwordInput.type = 'password';
-
-        button.textContent = 'Show';
-    }
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Password Generator
+| Get Toggle Button
+|--------------------------------------------------------------------------
+*/
+
+function getPasswordToggleButton() {
+
+    return document.querySelector(
+        '.toggle-password'
+    );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Toggle Password
+|--------------------------------------------------------------------------
+*/
+
+function togglePassword() {
+
+
+    const passwordInput =
+        getPasswordInput();
+
+
+    const button =
+        getPasswordToggleButton();
+
+
+    if (
+        !passwordInput
+        ||
+        !button
+    ) {
+
+        return;
+
+    }
+
+
+    const isHidden =
+        passwordInput.type ===
+        'password';
+
+
+    if (isHidden) {
+
+        passwordInput.type =
+            'text';
+
+        button.textContent =
+            'Hide';
+
+        button.setAttribute(
+            'aria-label',
+            'Hide password'
+        );
+
+        button.setAttribute(
+            'title',
+            'Hide password'
+        );
+
+    } else {
+
+        passwordInput.type =
+            'password';
+
+        button.textContent =
+            'Show';
+
+        button.setAttribute(
+            'aria-label',
+            'Show password'
+        );
+
+        button.setAttribute(
+            'title',
+            'Show password'
+        );
+
+    }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Generate Password
 |--------------------------------------------------------------------------
 */
 
 function generatePassword() {
 
-    const characters =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-        'abcdefghijklmnopqrstuvwxyz' +
-        '0123456789' +
-        '!@#$%^&*()_+-=';
+
+    const passwordInput =
+        document.getElementById(
+            'credentialPassword'
+        );
+
+
+    if (!passwordInput) {
+
+        return;
+
+    }
+
+
+    const uppercase =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+
+    const lowercase =
+        'abcdefghijklmnopqrstuvwxyz';
+
+
+    const numbers =
+        '0123456789';
+
+
+    const symbols =
+        '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+
+    const allCharacters =
+        uppercase
+        +
+        lowercase
+        +
+        numbers
+        +
+        symbols;
+
 
     let password = '';
 
-    for (let i = 0; i < 16; i++) {
 
-        const randomIndex =
+    /*
+    |--------------------------------------------------------------------------
+    | Guarantee character types
+    |--------------------------------------------------------------------------
+    */
+
+    password +=
+        uppercase[
             Math.floor(
-                Math.random() * characters.length
-            );
+                Math.random()
+                *
+                uppercase.length
+            )
+        ];
+
+
+    password +=
+        lowercase[
+            Math.floor(
+                Math.random()
+                *
+                lowercase.length
+            )
+        ];
+
+
+    password +=
+        numbers[
+            Math.floor(
+                Math.random()
+                *
+                numbers.length
+            )
+        ];
+
+
+    password +=
+        symbols[
+            Math.floor(
+                Math.random()
+                *
+                symbols.length
+            )
+        ];
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fill Remaining Characters
+    |--------------------------------------------------------------------------
+    */
+
+    for (
+        let i = password.length;
+        i < 16;
+        i++
+    ) {
 
         password +=
-            characters.charAt(randomIndex);
+            allCharacters[
+                Math.floor(
+                    Math.random()
+                    *
+                    allCharacters.length
+                )
+            ];
+
     }
 
-    const passwordInput =
-        document.getElementById('credentialPassword');
 
-    if (!passwordInput) {
-        return;
+    /*
+    |--------------------------------------------------------------------------
+    | Shuffle Password
+    |--------------------------------------------------------------------------
+    */
+
+    password =
+        password
+            .split('')
+            .sort(
+                () =>
+                    Math.random()
+                    -
+                    0.5
+            )
+            .join('');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Set Password
+    |--------------------------------------------------------------------------
+    */
+
+    passwordInput.value =
+        password;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Show Generated Password
+    |--------------------------------------------------------------------------
+    */
+
+    passwordInput.type =
+        'text';
+
+
+    const button =
+        getPasswordToggleButton();
+
+
+    if (button) {
+
+        button.textContent =
+            'Hide';
+
+        button.setAttribute(
+            'aria-label',
+            'Hide password'
+        );
+
+        button.setAttribute(
+            'title',
+            'Hide password'
+        );
+
     }
 
-    passwordInput.value = password;
 
     checkPasswordStrength();
+
 }
 
 
@@ -80,78 +312,202 @@ function generatePassword() {
 
 function checkPasswordStrength() {
 
+
     const passwordInput =
-        document.getElementById('credentialPassword');
+        document.getElementById(
+            'credentialPassword'
+        );
+
 
     const strengthElement =
-        document.getElementById('strength');
+        document.getElementById(
+            'strength'
+        );
 
-    if (!passwordInput || !strengthElement) {
+
+    if (
+        !passwordInput
+        ||
+        !strengthElement
+    ) {
+
         return;
+
     }
 
-    const password = passwordInput.value;
+
+    const password =
+        passwordInput.value;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Empty Password
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        password.length === 0
+    ) {
+
+        strengthElement.textContent =
+            '';
+
+        strengthElement.style.color =
+            '';
+
+        return;
+
+    }
+
 
     let score = 0;
 
-    if (password.length >= 8) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Length
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        password.length >= 8
+    ) {
+
         score++;
+
     }
 
-    if (/[A-Z]/.test(password)) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Uppercase
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        /[A-Z]/.test(password)
+    ) {
+
         score++;
+
     }
 
-    if (/[a-z]/.test(password)) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lowercase
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        /[a-z]/.test(password)
+    ) {
+
         score++;
+
     }
 
-    if (/[0-9]/.test(password)) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Number
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        /[0-9]/.test(password)
+    ) {
+
         score++;
+
     }
 
-    if (/[^A-Za-z0-9]/.test(password)) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Special Character
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        /[^A-Za-z0-9]/.test(password)
+    ) {
+
         score++;
+
     }
 
-    if (password.length === 0) {
 
-        strengthElement.textContent = '';
+    /*
+    |--------------------------------------------------------------------------
+    | Result
+    |--------------------------------------------------------------------------
+    */
 
-    } else if (score <= 2) {
+    if (score <= 2) {
 
         strengthElement.textContent =
             'Password Strength: Weak';
 
-    } else if (score <= 4) {
+        strengthElement.style.color =
+            '#b00020';
+
+    }
+
+    else if (score <= 4) {
 
         strengthElement.textContent =
             'Password Strength: Medium';
 
-    } else {
+        strengthElement.style.color =
+            '#996600';
+
+    }
+
+    else {
 
         strengthElement.textContent =
             'Password Strength: Strong';
+
+        strengthElement.style.color =
+            '#198754';
+
     }
+
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Password Strength - Live Input
+| Page Initialization
 |--------------------------------------------------------------------------
 */
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-    const passwordInput =
-        document.getElementById('credentialPassword');
 
-    if (passwordInput) {
+        const passwordInput =
+            getPasswordInput();
 
-        passwordInput.addEventListener(
-            'input',
-            checkPasswordStrength
-        );
+
+        if (passwordInput) {
+
+
+            passwordInput.addEventListener(
+                'input',
+                function () {
+
+                    checkPasswordStrength();
+
+                }
+            );
+
+
+        }
+
+
     }
-});
+);
