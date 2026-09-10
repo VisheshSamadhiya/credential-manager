@@ -414,6 +414,28 @@ textarea {
 
 }
 
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input {
+    padding-right: 55px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+    line-height: 1;
+}
+
 
 textarea {
 
@@ -610,11 +632,25 @@ echo htmlspecialchars(
     New Password *
 </label>
 
-<input
-    type="password"
-    name="new_password"
-    required
->
+<div class="password-wrapper">
+
+    <input
+        type="password"
+        name="new_password"
+        id="new_password"
+        required
+        autocomplete="new-password"
+    >
+
+    <button
+        type="button"
+        class="toggle-password"
+        id="togglePassword"
+        aria-label="Show password"
+        title="Show password"
+    >👁</button>
+
+</div>
 
 
 <label>
@@ -643,6 +679,27 @@ echo htmlspecialchars(
 
 </div>
 
+
+<script>
+const passwordInput = document.getElementById('new_password');
+const togglePassword = document.getElementById('togglePassword');
+
+togglePassword.addEventListener('click', function () {
+    const isHidden = passwordInput.type === 'password';
+
+    passwordInput.type = isHidden ? 'text' : 'password';
+
+    this.textContent = isHidden ? '🙈' : '👁';
+    this.setAttribute(
+        'aria-label',
+        isHidden ? 'Hide password' : 'Show password'
+    );
+    this.setAttribute(
+        'title',
+        isHidden ? 'Hide password' : 'Show password'
+    );
+});
+</script>
 
 </body>
 
