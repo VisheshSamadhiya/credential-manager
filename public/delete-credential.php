@@ -2,24 +2,14 @@
 
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/activity_logger.php';
 
-requireLogin();
+requireAdmin();
 
-
-if (!canDeleteCredentials()) {
-
-    header(
-        'Location: /credentials.php?access_denied=1'
-    );
-
-    exit;
-}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /credentials.php');
     exit;
 }
-
-$userId = $_SESSION['user_id'];
 
 $credentialId = filter_input(
     INPUT_POST,
@@ -28,31 +18,91 @@ $credentialId = filter_input(
 );
 
 if (!$credentialId) {
-    header('Location: /credentials.php');
+    header('Location: /credentials.php?error=invalid_id');
     exit;
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Delete Only User's Own Credential
+| Get Credential Before Deleting
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare(
-    "DELETE FROM credentials
+    "SELECT
+        id,
+        service_name,
+        employee_id
+     FROM credentials
      WHERE id = :id
-     AND created_by = :user_id"
+     LIMIT 1"
 );
 
 $stmt->execute([
-    ':id' => $credentialId,
-    ':user_id' => $userId
+    ':id' => $credentialId
 ]);
 
+$credential = $stmt->fetch(PDO::FETCH_ASSOC);
 
-header(
-    'Location: /credentials.php?deleted=1'
-);
+if (!$credential) {
+    header('Location: /credentials.php?error=not_found');
+    exit;
+}
 
-exit;
+/*
+|--------------------------------------------------------------------------
+| Delete Credential
+|--------------------------------------------------------------------------
+|
+| Admin is allowed to delete ANY credential.
+| Do NOT restrict this by created_by.
+|
+*/
+
+try {
+
+    $deleteStmt = $pdo->prepare(
+        "DELETE FROM credentials
+         WHERE id = :id"
+    );
+
+    $deleteStmt->execute([
+        ':id' => $credentialId
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Activity Log
+    |--------------------------------------------------------------------------
+    */
+
+    logActivity(
+        $pdo,
+        'credential_deleted',
+        'Administrator deleted credential: '
+        . $credential['service_name'],
+        $credential['employee_id']
+            ? (int) $credential['employee_id']
+            : null,
+        $credentialId
+    );
+
+    header(
+        'Location: /credentials.php?deleted=1'
+    );
+
+    exit;
+
+} catch (PDOException $e) {
+
+    error_log(
+        'Credential deletion failed: '
+        . $e->getMessage()
+    );
+
+    header(
+        'Location: /credentials.php?error=delete_failed'
+    );
+
+    exit;
+}
