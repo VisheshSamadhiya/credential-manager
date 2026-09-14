@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
@@ -6,6 +7,15 @@
 |--------------------------------------------------------------------------
 |
 | Records important actions performed by users.
+|
+| The activity_logs table contains:
+|   user_id
+|   action
+|   description
+|   created_at
+|
+| Credential-specific access logging is handled separately by the
+| credential access/activity log tables.
 |
 */
 
@@ -17,71 +27,43 @@ function logActivity(
     ?int $credentialId = null
 ): void {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Get Current User
-    |--------------------------------------------------------------------------
-    */
-
     $userId = isset($_SESSION['user_id'])
         ? (int) $_SESSION['user_id']
         : null;
 
+    /*
+     * employeeId and credentialId are intentionally accepted for
+     * compatibility with existing callers, but they are not inserted
+     * into activity_logs because those columns do not exist there.
+     */
 
     try {
-
         $stmt = $pdo->prepare(
-
             "INSERT INTO activity_logs (
-
                 user_id,
                 action,
-                description,
-                employee_id,
-                credential_id
-
+                description
             )
-
             VALUES (
-
                 :user_id,
                 :action,
-                :description,
-                :employee_id,
-                :credential_id
-
+                :description
             )"
-
         );
 
-
         $stmt->execute([
-
             ':user_id' => $userId,
-
             ':action' => $action,
-
-            ':description' => $description,
-
-            ':employee_id' => $employeeId,
-
-            ':credential_id' => $credentialId
-
+            ':description' => $description
         ]);
 
     } catch (PDOException $e) {
 
         /*
-        |--------------------------------------------------------------------------
-        | Logging should not break the main application
-        |--------------------------------------------------------------------------
-        */
-
+         * Logging failure must never break the main application.
+         */
         error_log(
-            'Activity logging failed: '
-            . $e->getMessage()
+            'Activity logging failed: ' . $e->getMessage()
         );
-
     }
-
 }
