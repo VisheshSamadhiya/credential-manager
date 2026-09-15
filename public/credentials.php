@@ -663,61 +663,6 @@ tr:hover {
 
 }
 
-.copy-button {
-
-    padding:
-        6px 10px;
-
-    border:
-        none;
-
-    cursor:
-        pointer;
-
-    border-radius:
-        4px;
-
-    background:
-        #333;
-
-    color:
-        white;
-
-}
-
-.copy-button:hover {
-
-    background:
-        #555;
-
-}
-
-.copy-button:disabled {
-
-    background:
-        #999;
-
-    cursor:
-        not-allowed;
-
-}
-
-.clipboard-status {
-
-    margin-top:
-        8px;
-
-    font-size:
-        12px;
-
-    min-height:
-        18px;
-
-    color:
-        #555;
-
-}
-
 
 /*
 |--------------------------------------------------------------------------
@@ -1326,20 +1271,6 @@ tr:hover {
 </button>
 
 
-<button
-    type="button"
-    class="copy-button"
-    onclick="copyPassword(this)"
->
-    Copy
-</button>
-
-
-</div>
-
-
-<div class="clipboard-status">
-
 </div>
 
 
@@ -1431,7 +1362,7 @@ tr:hover {
 <div class="actions">
 
 
-<?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+<?php if (canEditCredentials()): ?>
 
     <a
         class="button"
@@ -1443,13 +1374,7 @@ tr:hover {
 <?php endif; ?>
 
 
-<?php if (
-    in_array(
-        ($_SESSION['role'] ?? 'viewer'),
-        ['admin', 'editor'],
-        true
-    )
-): ?>
+<?php if (canEditCredentials()): ?>
 
     <a
         class="button"
@@ -1461,7 +1386,7 @@ tr:hover {
 <?php endif; ?>
 
 
-<?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+<?php if (canDeleteCredentials()): ?>
 
     <form
         method="POST"
@@ -1473,6 +1398,17 @@ tr:hover {
             type="hidden"
             name="id"
             value="<?php echo (int) $credential['id']; ?>"
+        >
+
+
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?php echo htmlspecialchars(
+                csrfToken(),
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>"
         >
 
 
@@ -1488,7 +1424,7 @@ tr:hover {
 <?php endif; ?>
 
 
-<?php if (($_SESSION['role'] ?? '') === 'viewer'): ?>
+<?php if (hasRole('viewer')): ?>
 
     <span>
         View Only
@@ -1525,131 +1461,138 @@ tr:hover {
 
 
 <script>
-async function fetchCredentialPassword(id, action) {
+
+async function fetchCredentialPassword(id) {
+
     const response = await fetch(
-        'show-password.php?id=' + encodeURIComponent(id) +
-        '&action=' + encodeURIComponent(action || 'view'),
+        'show-password.php?id=' +
+        encodeURIComponent(id),
         {
             credentials: 'same-origin',
-            headers: {'Accept': 'application/json'}
+            headers: {
+                'Accept': 'application/json'
+            }
         }
     );
 
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Unable to access password.');
+
+        throw new Error(
+            data.message ||
+            'Unable to access password.'
+        );
+
     }
 
     return data.password;
 }
 
-function togglePassword(button) {
-    const passwordField = button.closest('.password-field');
-    const passwordSpan = passwordField.querySelector('.password');
-    const id = passwordSpan.dataset.credentialId;
 
-    if (passwordSpan.dataset.visible === '1') {
-        passwordSpan.textContent = '••••••••';
-        passwordSpan.dataset.visible = '0';
-        button.textContent = 'Show';
+function togglePassword(button) {
+
+    const passwordField =
+        button.closest('.password-field');
+
+    const passwordSpan =
+        passwordField.querySelector('.password');
+
+    const id =
+        passwordSpan.dataset.credentialId;
+
+
+    if (
+        passwordSpan.dataset.visible === '1'
+    ) {
+
+        passwordSpan.textContent =
+            '••••••••';
+
+        passwordSpan.dataset.visible =
+            '0';
+
+        button.textContent =
+            'Show';
+
 
         if (passwordSpan._hideTimer) {
-            clearTimeout(passwordSpan._hideTimer);
-            passwordSpan._hideTimer = null;
+
+            clearTimeout(
+                passwordSpan._hideTimer
+            );
+
+            passwordSpan._hideTimer =
+                null;
+
         }
+
         return;
+
     }
 
-    button.disabled = true;
-    button.textContent = 'Loading...';
 
-    fetchCredentialPassword(id, 'view')
+    button.disabled =
+        true;
+
+    button.textContent =
+        'Loading...';
+
+
+    fetchCredentialPassword(id)
+
         .then(function(password) {
-            passwordSpan.textContent = password;
-            passwordSpan.dataset.visible = '1';
-            button.textContent = 'Hide';
 
-            passwordSpan._hideTimer = setTimeout(function() {
-                passwordSpan.textContent = '••••••••';
-                passwordSpan.dataset.visible = '0';
-                button.textContent = 'Show';
-                passwordSpan._hideTimer = null;
-            }, 30000);
+            passwordSpan.textContent =
+                password;
+
+            passwordSpan.dataset.visible =
+                '1';
+
+            button.textContent =
+                'Hide';
+
+
+            passwordSpan._hideTimer =
+                setTimeout(function() {
+
+                    passwordSpan.textContent =
+                        '••••••••';
+
+                    passwordSpan.dataset.visible =
+                        '0';
+
+                    button.textContent =
+                        'Show';
+
+                    passwordSpan._hideTimer =
+                        null;
+
+                }, 30000);
+
         })
+
         .catch(function(error) {
+
             alert(error.message);
-            button.textContent = 'Show';
+
+            button.textContent =
+                'Show';
+
         })
+
         .finally(function() {
-            button.disabled = false;
+
+            button.disabled =
+                false;
+
         });
+
 }
-
-async function copyPassword(button) {
-    const passwordField = button.closest('.password-field');
-    const passwordSpan = passwordField.querySelector('.password');
-    const status = passwordField.querySelector('.clipboard-status');
-    const id = passwordSpan.dataset.credentialId;
-
-    if (button.disabled) return;
-
-    try {
-        button.disabled = true;
-        const password = await fetchCredentialPassword(id, 'copy');
-
-        try {
-            await navigator.clipboard.writeText(password);
-        } catch (error) {
-            const temporaryInput = document.createElement('textarea');
-            temporaryInput.value = password;
-            temporaryInput.style.position = 'fixed';
-            temporaryInput.style.opacity = '0';
-            document.body.appendChild(temporaryInput);
-            temporaryInput.focus();
-            temporaryInput.select();
-
-            if (!document.execCommand('copy')) {
-                throw new Error('Copy failed');
-            }
-
-            document.body.removeChild(temporaryInput);
-        }
-
-        button.textContent = 'Copied ✓';
-        let remainingSeconds = 30;
-        status.textContent =
-            'Password copied. Clipboard clears in ' +
-            remainingSeconds + ' seconds.';
-
-        const countdown = setInterval(async function() {
-            remainingSeconds--;
-
-            if (remainingSeconds > 0) {
-                status.textContent =
-                    'Password copied. Clipboard clears in ' +
-                    remainingSeconds + ' seconds.';
-                return;
-            }
-
-            clearInterval(countdown);
-
-            try {
-                await navigator.clipboard.writeText('');
-                status.textContent = 'Clipboard cleared successfully.';
-            } catch (error) {
-                status.textContent = 'Clipboard timer expired.';
-            }
-
-            button.disabled = false;
-            button.textContent = 'Copy';
-        }, 1000);
-    } catch (error) {
-        status.textContent = error.message || 'Unable to copy password.';
-        button.disabled = false;
-        button.textContent = 'Copy';
-    }
-}
-
 
 </script>
+
+
+</body>
+
+</html>
