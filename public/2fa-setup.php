@@ -83,6 +83,8 @@ $otpAuthUri = buildOtpAuthUri($secret, $user['username']);
 <style>
 body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;color:#333}.container{max-width:760px;margin:50px auto;padding:30px;background:#fff;border-radius:10px;box-shadow:0 5px 20px rgba(0,0,0,.08)}.secret{font:700 24px monospace;letter-spacing:2px;background:#f1f5f9;padding:15px;border-radius:8px;word-break:break-all}.uri{font:13px monospace;word-break:break-all;background:#f8fafc;padding:12px;border-radius:8px}.error{background:#f8d7da;color:#721c24;padding:12px;border-radius:6px;margin:15px 0}input{padding:13px;width:220px;font-size:20px;letter-spacing:5px;text-align:center}button,.back{display:inline-block;padding:12px 18px;background:#222;color:#fff;border:0;border-radius:5px;text-decoration:none;cursor:pointer}.steps{line-height:1.7}
 </style>
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 <body>
 <div class="container">
@@ -106,5 +108,7 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;color:#333}.contai
 <a class="back" href="/manage-users.php">Cancel</a>
 </form>
 </div>
+    <script src="/assets/theme.js"></script>
+
 </body>
 </html>

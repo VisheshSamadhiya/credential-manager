@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
 requireLogin();
 
-$userId = $_SESSION['user_id'];
+$userId = (int) $_SESSION['user_id'];
 
 
 /*
 |--------------------------------------------------------------------------
-| Get User Information
+| Current User
 |--------------------------------------------------------------------------
 */
 
@@ -21,8 +23,9 @@ $stmt = $pdo->prepare(
         username,
         email,
         role
-    FROM users
-    WHERE id = :id"
+     FROM users
+     WHERE id = :id
+     LIMIT 1"
 );
 
 $stmt->execute([
@@ -31,11 +34,13 @@ $stmt->execute([
 
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+
 if (!$user) {
 
     session_destroy();
 
     header('Location: /login.php');
+
     exit;
 }
 
@@ -50,27 +55,24 @@ $credentialCount = 0;
 $departmentCount = 0;
 $employeeCount = 0;
 
+
 try {
 
-    $credentialCount = $pdo
+    $credentialCount = (int) $pdo
         ->query("SELECT COUNT(*) FROM credentials")
         ->fetchColumn();
 
-    $departmentCount = $pdo
+    $departmentCount = (int) $pdo
         ->query("SELECT COUNT(*) FROM departments")
         ->fetchColumn();
 
-    $employeeCount = $pdo
+    $employeeCount = (int) $pdo
         ->query("SELECT COUNT(*) FROM employees")
         ->fetchColumn();
 
 } catch (PDOException $e) {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Keep dashboard working even if a table query fails
-    |--------------------------------------------------------------------------
-    */
+    // Keep dashboard available if statistics fail.
 
 }
 
@@ -83,13 +85,8 @@ try {
 
 $recentCredentials = [];
 
-try {
 
-    /*
-    |--------------------------------------------------------------------------
-    | This query assumes credentials are connected to employees
-    |--------------------------------------------------------------------------
-    */
+try {
 
     $recentStmt = $pdo->query(
         "SELECT
@@ -97,14 +94,11 @@ try {
             credentials.service_name,
             credentials.created_at,
             users.full_name AS created_by_name
-        FROM credentials
-
-        LEFT JOIN users
+         FROM credentials
+         LEFT JOIN users
             ON credentials.created_by = users.id
-
-        ORDER BY credentials.created_at DESC
-
-        LIMIT 5"
+         ORDER BY credentials.created_at DESC
+         LIMIT 5"
     );
 
     $recentCredentials =
@@ -115,6 +109,23 @@ try {
     $recentCredentials = [];
 
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| User Display Data
+|--------------------------------------------------------------------------
+*/
+
+$role = (string) $user['role'];
+
+$roleLabel = ucfirst($role);
+
+$fullName = (string) $user['full_name'];
+
+$initial = strtoupper(
+    substr($fullName, 0, 1)
+);
 
 ?>
 
@@ -131,65 +142,155 @@ try {
     content="width=device-width, initial-scale=1"
 >
 
-<title>Dashboard - Credential Manager</title>
+<meta
+    name="referrer"
+    content="no-referrer"
+>
+
+<title>
+    Dashboard · Credential Manager
+</title>
+
+
+<link
+    rel="stylesheet"
+    href="/assets/theme.css"
+>
 
 
 <style>
 
-/*
-|--------------------------------------------------------------------------
-| Global
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   CREDENTIAL MANAGER DASHBOARD
+   PURPLE / PINK SAAS DESIGN
+   ========================================================= */
+
+
+:root {
+
+    --purple-950: #240047;
+    --purple-900: #3b0764;
+    --purple-800: #581c87;
+    --purple-700: #6d28d9;
+    --purple-600: #7c3aed;
+    --purple-500: #8b5cf6;
+
+    --pink-600: #db2777;
+    --pink-500: #ec4899;
+    --pink-400: #f472b6;
+
+    --bg: #faf7ff;
+    --card: #ffffff;
+
+    --text: #1f1533;
+    --muted: #746b82;
+
+    --border: #eee7f7;
+
+    --shadow:
+        0 14px 40px
+        rgba(91, 33, 182, .09);
+
+    --gradient:
+        linear-gradient(
+            135deg,
+            #6d28d9 0%,
+            #8b5cf6 48%,
+            #ec4899 100%
+        );
+}
+
+
+/* =========================================================
+   RESET
+   ========================================================= */
 
 * {
     box-sizing: border-box;
 }
 
+
+html {
+    scroll-behavior: smooth;
+}
+
+
 body {
     margin: 0;
 
     font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
         Arial,
         sans-serif;
 
-    background: #f5f7fb;
+    background:
+        radial-gradient(
+            circle at 85% 5%,
+            rgba(236,72,153,.08),
+            transparent 25%
+        ),
+        radial-gradient(
+            circle at 20% 10%,
+            rgba(124,58,237,.07),
+            transparent 28%
+        ),
+        var(--bg);
 
-    color: #1f2937;
+    color: var(--text);
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Sidebar
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
 
 .sidebar {
 
     position: fixed;
 
-    top: 0;
-    left: 0;
+    inset: 0 auto 0 0;
 
-    width: 260px;
+    width: 270px;
 
     height: 100vh;
 
-    background: #1e293b;
+    padding: 22px 16px;
 
-    color: white;
+    background:
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(236,72,153,.22),
+            transparent 32%
+        ),
+        linear-gradient(
+            180deg,
+            #25004a 0%,
+            #32105f 48%,
+            #1f0a3b 100%
+        );
+
+    color: #ffffff;
 
     display: flex;
 
     flex-direction: column;
 
-    padding: 25px 18px;
-
     z-index: 1000;
 
+    box-shadow:
+        8px 0 35px
+        rgba(45, 0, 75, .18);
 }
 
+
+/* =========================================================
+   LOGO
+   ========================================================= */
 
 .logo {
 
@@ -199,198 +300,244 @@ body {
 
     gap: 12px;
 
-    padding: 10px 12px;
-
-    font-size: 20px;
-
-    font-weight: bold;
-
-    margin-bottom: 40px;
-
+    padding:
+        8px
+        10px
+        26px;
 }
 
 
 .logo-icon {
 
-    width: 42px;
-    height: 42px;
+    width: 46px;
 
-    display: flex;
+    height: 46px;
 
-    align-items: center;
+    display: grid;
 
-    justify-content: center;
+    place-items: center;
 
-    background: #2563eb;
+    border-radius: 14px;
 
-    border-radius: 10px;
+    background:
+        linear-gradient(
+            135deg,
+            #8b5cf6,
+            #ec4899
+        );
 
+    box-shadow:
+        0 8px 24px
+        rgba(236,72,153,.28);
+
+    font-size: 22px;
 }
 
 
+.logo-text {
+
+    font-size: 18px;
+
+    font-weight: 800;
+
+    letter-spacing: -.3px;
+}
+
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+   ========================================================= */
+
 .nav-section {
 
-    font-size: 11px;
+    margin:
+        20px
+        12px
+        8px;
+
+    color: #c4b5fd;
+
+    font-size: 10px;
+
+    font-weight: 800;
 
     text-transform: uppercase;
 
-    color: #94a3b8;
-
-    margin:
-
-        18px 12px
-        8px;
-
-    letter-spacing: 1px;
-
+    letter-spacing: 1.5px;
 }
 
 
 .nav-link {
 
+    position: relative;
+
     display: flex;
 
     align-items: center;
 
-    gap: 14px;
+    gap: 13px;
 
-    padding: 13px 14px;
+    padding:
+        12px
+        13px;
 
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 
-    border-radius: 8px;
+    border-radius: 12px;
 
-    color: #cbd5e1;
+    color: #ddd6fe;
 
     text-decoration: none;
 
-    transition: 0.2s;
+    font-size: 14px;
 
+    font-weight: 600;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        transform .2s ease;
 }
 
 
 .nav-link:hover {
 
-    background: #334155;
+    background:
+        rgba(255,255,255,.09);
 
-    color: white;
+    color: #ffffff;
 
+    transform:
+        translateX(2px);
 }
 
 
 .nav-link.active {
 
-    background: #2563eb;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(139,92,246,.95),
+            rgba(236,72,153,.78)
+        );
 
-    color: white;
+    color: #ffffff;
 
+    box-shadow:
+        0 8px 22px
+        rgba(124,58,237,.28);
 }
 
 
 .nav-icon {
 
-    width: 20px;
+    width: 22px;
 
     text-align: center;
 
+    font-size: 17px;
 }
 
 
 .sidebar-bottom {
 
     margin-top: auto;
-
 }
 
 
 .logout-link {
 
     background:
-        rgba(
-            239,
-            68,
-            68,
-            0.1
-        );
+        rgba(244,63,94,.08);
 
-    color: #fca5a5;
-
+    color: #fecdd3;
 }
 
 
 .logout-link:hover {
 
-    background: #dc2626;
-
-    color: white;
-
+    background:
+        rgba(244,63,94,.82);
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Main Layout
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   MAIN
+   ========================================================= */
 
 .main {
 
-    margin-left: 260px;
+    margin-left: 270px;
 
     min-height: 100vh;
-
 }
 
 
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
 .topbar {
 
-    height: 80px;
+    position: sticky;
 
-    background: white;
+    top: 0;
+
+    height: 78px;
+
+    padding:
+        0
+        32px;
+
+    background:
+        rgba(255,255,255,.90);
+
+    backdrop-filter:
+        blur(18px);
+
+    -webkit-backdrop-filter:
+        blur(18px);
 
     border-bottom:
-
         1px solid
-        #e5e7eb;
+        rgba(238,231,247,.9);
 
     display: flex;
 
     align-items: center;
 
-    justify-content: space-between;
+    gap: 22px;
 
-    gap: 25px;
-
-    padding: 0 40px;
-
+    z-index: 900;
 }
 
 
 .page-title {
 
-    font-size: 22px;
+    min-width: 105px;
 
-    font-weight: 700;
+    font-size: 20px;
 
-    white-space: nowrap;
+    font-weight: 800;
 
+    letter-spacing: -.5px;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Search
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   CLEAN SEARCH BAR
+   ========================================================= */
 
 .search-form {
 
-    width: 100%;
+    flex: 1;
 
-    max-width: 550px;
+    max-width: 560px;
 
     position: relative;
 
+    margin:
+        0 auto;
 }
 
 
@@ -398,33 +545,66 @@ body {
 
     width: 100%;
 
-    padding:
+    height: 42px;
 
-        13px 45px
-        13px 18px;
+    padding:
+        0
+        46px
+        0
+        17px;
 
     border:
-
         1px solid
-        #dbe1ea;
+        #e4d9ef;
 
-    border-radius: 10px;
+    border-radius: 11px;
 
     outline: none;
 
-    font-size: 14px;
+    font-family: inherit;
 
-    background: #f8fafc;
+    font-size: 13px;
 
+    font-weight: 500;
+
+    color: #2d2340;
+
+    background:
+        #faf8fd;
+
+    transition:
+        border-color .2s ease,
+        background-color .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.search-input::placeholder {
+
+    color: #968ca5;
+
+    font-weight: 500;
+}
+
+
+.search-input:hover {
+
+    border-color:
+        #c8afe2;
 }
 
 
 .search-input:focus {
 
-    background: white;
+    background:
+        #ffffff;
 
-    border-color: #2563eb;
+    border-color:
+        #8b5cf6;
 
+    box-shadow:
+        0 0 0 3px
+        rgba(139,92,246,.10);
 }
 
 
@@ -432,45 +612,28 @@ body {
 
     position: absolute;
 
-    right: 5px;
-    top: 5px;
+    right: 4px;
 
-    height: 38px;
+    top: 4px;
 
-    border: none;
+    width: 34px;
 
-    background: transparent;
+    height: 34px;
 
-    cursor: pointer;
+    padding: 0;
 
-    font-size: 18px;
+    border: 0;
 
-}
+    border-radius: 8px;
 
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #db2777
+        );
 
-.user-profile {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-
-    white-space: nowrap;
-
-}
-
-
-.avatar {
-
-    width: 42px;
-    height: 42px;
-
-    border-radius: 50%;
-
-    background: #dbeafe;
-
-    color: #2563eb;
+    color: #ffffff;
 
     display: flex;
 
@@ -478,120 +641,148 @@ body {
 
     justify-content: center;
 
-    font-weight: bold;
+    cursor: pointer;
 
-    font-size: 18px;
+    font-size: 14px;
 
+    line-height: 1;
+
+    opacity: .92;
+
+    transition:
+        transform .18s ease,
+        opacity .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.search-button:hover {
+
+    opacity: 1;
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 5px 14px
+        rgba(124,58,237,.24);
+}
+
+
+.search-button:active {
+
+    transform:
+        translateY(0);
+}
+
+
+.search-button:focus-visible {
+
+    outline:
+        3px solid
+        rgba(168,85,247,.22);
+
+    outline-offset: 2px;
+}
+
+
+/* =========================================================
+   USER PROFILE
+   ========================================================= */
+
+.user-profile {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    white-space: nowrap;
+}
+
+
+.avatar {
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 13px;
+
+    display: grid;
+
+    place-items: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ede9fe,
+            #fce7f3
+        );
+
+    color: #7c3aed;
+
+    font-weight: 900;
+
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(124,58,237,.08);
 }
 
 
 .user-name {
 
-    font-weight: 600;
+    font-size: 13px;
 
+    font-weight: 800;
 }
 
 
 .user-role {
 
-    font-size: 13px;
+    margin-top: 2px;
 
-    color: #64748b;
+    color: var(--muted);
 
+    font-size: 11px;
+
+    font-weight: 600;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Content
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   CONTENT
+   ========================================================= */
 
 .content {
 
-    padding: 35px 40px;
+    padding:
+        32px
+        34px
+        48px;
 
-    max-width: 1500px;
-
+    max-width: 1600px;
 }
 
 
-.welcome-banner {
-
-    background:
-
-        linear-gradient(
-            135deg,
-            #2563eb,
-            #4f46e5
-        );
-
-    border-radius: 16px;
-
-    padding: 35px;
-
-    color: white;
-
-    margin-bottom: 30px;
-
-}
-
-
-.welcome-banner h1 {
-
-    margin: 0 0 10px;
-
-    font-size: 30px;
-
-}
-
-
-.welcome-banner p {
-
-    margin: 0;
-
-    opacity: 0.9;
-
-}
-
-
-.role-badge {
-
-    display: inline-block;
-
-    margin-top: 18px;
-
-    background:
-        rgba(
-            255,
-            255,
-            255,
-            0.2
-        );
-
-    padding: 7px 14px;
-
-    border-radius: 20px;
-
-    font-size: 13px;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Alert
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   ACCESS ALERT
+   ========================================================= */
 
 .alert {
 
-    padding: 16px 20px;
+    padding:
+        14px
+        17px;
 
-    border-radius: 10px;
+    border-radius: 13px;
 
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 
+    font-size: 13px;
+
+    font-weight: 600;
 }
 
 
@@ -602,60 +793,232 @@ body {
     color: #9a3412;
 
     border:
-
         1px solid
         #fed7aa;
-
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Statistics
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   WELCOME BANNER
+   ========================================================= */
+
+.welcome-banner {
+
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 32px;
+
+    margin-bottom: 24px;
+
+    border-radius: 21px;
+
+    color: #ffffff;
+
+    background:
+        var(--gradient);
+
+    box-shadow:
+        0 20px 50px
+        rgba(124,58,237,.22);
+}
+
+
+.welcome-banner::before,
+.welcome-banner::after {
+
+    content: "";
+
+    position: absolute;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+
+.welcome-banner::before {
+
+    width: 250px;
+
+    height: 250px;
+
+    right: -70px;
+
+    top: -110px;
+
+    background:
+        rgba(255,255,255,.12);
+}
+
+
+.welcome-banner::after {
+
+    width: 170px;
+
+    height: 170px;
+
+    right: 180px;
+
+    bottom: -115px;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
+
+.welcome-content {
+
+    position: relative;
+
+    z-index: 1;
+}
+
+
+.welcome-banner h1 {
+
+    margin:
+        0
+        0
+        8px;
+
+    font-size:
+        clamp(
+            24px,
+            3vw,
+            32px
+        );
+
+    letter-spacing: -.9px;
+}
+
+
+.welcome-banner p {
+
+    margin: 0;
+
+    max-width: 620px;
+
+    color:
+        rgba(255,255,255,.88);
+
+    line-height: 1.6;
+
+    font-size: 14px;
+}
+
+
+.role-badge {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin-top: 17px;
+
+    padding:
+        8px
+        13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.2);
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,.14);
+
+    font-size: 11px;
+
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   STATISTICS
+   ========================================================= */
 
 .stats-grid {
 
     display: grid;
 
     grid-template-columns:
-
         repeat(
-            auto-fit,
-            minmax(220px, 1fr)
+            4,
+            minmax(0, 1fr)
         );
 
-    gap: 20px;
+    gap: 17px;
 
-    margin-bottom: 30px;
-
+    margin-bottom: 24px;
 }
 
 
 .stat-card {
 
-    background: white;
+    position: relative;
 
-    border-radius: 14px;
+    overflow: hidden;
 
-    padding: 24px;
+    min-height: 135px;
+
+    padding: 20px;
+
+    background:
+        var(--card);
 
     border:
-
         1px solid
-        #edf0f5;
+        var(--border);
+
+    border-radius: 17px;
 
     box-shadow:
+        var(--shadow);
 
-        0 4px 15px
-        rgba(
-            0,
-            0,
-            0,
-            0.04
+    transition:
+        transform .22s ease,
+        box-shadow .22s ease;
+}
+
+
+.stat-card:hover {
+
+    transform:
+        translateY(-3px);
+
+    box-shadow:
+        0 18px 45px
+        rgba(91,33,182,.13);
+}
+
+
+.stat-card::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 90px;
+
+    height: 90px;
+
+    right: -38px;
+
+    bottom: -42px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(124,58,237,.08),
+            rgba(236,72,153,.12)
         );
-
 }
 
 
@@ -663,93 +1026,88 @@ body {
 
     display: flex;
 
-    justify-content: space-between;
-
     align-items: center;
 
+    justify-content: space-between;
 }
 
 
 .stat-label {
 
-    color: #64748b;
+    color: var(--muted);
 
-    font-size: 14px;
+    font-size: 12px;
 
+    font-weight: 700;
 }
 
 
 .stat-number {
 
-    font-size: 32px;
+    margin-top: 12px;
 
-    font-weight: 700;
+    font-size: 29px;
 
-    margin-top: 15px;
+    font-weight: 900;
 
+    letter-spacing: -.7px;
 }
 
 
 .stat-icon {
 
-    width: 45px;
-    height: 45px;
+    width: 42px;
+
+    height: 42px;
+
+    display: grid;
+
+    place-items: center;
 
     border-radius: 12px;
 
-    background: #eff6ff;
+    background:
+        linear-gradient(
+            135deg,
+            #f3e8ff,
+            #fce7f3
+        );
 
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    font-size: 20px;
-
+    font-size: 19px;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard Grid
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   DASHBOARD PANELS
+   ========================================================= */
 
 .dashboard-grid {
 
     display: grid;
 
     grid-template-columns:
+        minmax(0, 2fr)
+        minmax(290px, 1fr);
 
-        2fr 1fr;
-
-    gap: 25px;
-
+    gap: 21px;
 }
 
 
 .panel {
 
-    background: white;
+    overflow: hidden;
 
-    border-radius: 14px;
+    background:
+        var(--card);
 
     border:
-
         1px solid
-        #edf0f5;
+        var(--border);
+
+    border-radius: 18px;
 
     box-shadow:
-
-        0 4px 15px
-        rgba(
-            0,
-            0,
-            0,
-            0.04
-        );
-
+        var(--shadow);
 }
 
 
@@ -757,61 +1115,89 @@ body {
 
     display: flex;
 
-    justify-content: space-between;
-
     align-items: center;
 
-    padding: 22px 25px;
+    justify-content: space-between;
+
+    padding:
+        19px
+        22px;
 
     border-bottom:
-
         1px solid
-        #eef1f5;
-
+        #f1ebf7;
 }
 
 
 .panel-title {
 
-    font-size: 17px;
+    font-size: 15px;
 
-    font-weight: 600;
-
+    font-weight: 850;
 }
 
 
 .view-all {
 
-    color: #2563eb;
+    color:
+        #7c3aed;
 
     text-decoration: none;
 
-    font-size: 14px;
+    font-size: 12px;
 
+    font-weight: 800;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Credential List
-|--------------------------------------------------------------------------
-*/
+.view-all:hover {
+
+    color:
+        #db2777;
+}
+
+
+/* =========================================================
+   RECENT CREDENTIALS
+   ========================================================= */
 
 .credential-item {
 
     display: flex;
 
-    justify-content: space-between;
-
     align-items: center;
 
-    padding: 18px 25px;
+    justify-content: space-between;
+
+    gap: 18px;
+
+    padding:
+        16px
+        22px;
 
     border-bottom:
-
         1px solid
-        #f1f5f9;
+        #f4eff8;
 
+    transition:
+        background .18s ease;
+}
+
+
+.credential-item:last-child {
+
+    border-bottom: 0;
+}
+
+
+.credential-item:hover {
+
+    background:
+        linear-gradient(
+            90deg,
+            #ffffff,
+            #fcf8ff
+        );
 }
 
 
@@ -821,74 +1207,89 @@ body {
 
     align-items: center;
 
-    gap: 14px;
+    gap: 12px;
 
+    min-width: 0;
 }
 
 
 .service-icon {
 
     width: 42px;
+
     height: 42px;
 
-    border-radius: 10px;
+    flex:
+        0 0 42px;
 
-    background: #f1f5f9;
+    display: grid;
 
-    display: flex;
+    place-items: center;
 
-    align-items: center;
+    border-radius: 12px;
 
-    justify-content: center;
-
+    background:
+        linear-gradient(
+            135deg,
+            #f3e8ff,
+            #fce7f3
+        );
 }
 
 
 .service-name {
 
-    font-weight: 600;
+    overflow: hidden;
 
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    font-size: 13px;
+
+    font-weight: 800;
 }
 
 
 .service-meta {
 
-    font-size: 13px;
+    margin-top: 3px;
 
-    color: #64748b;
+    color:
+        var(--muted);
 
-    margin-top: 4px;
-
+    font-size: 11px;
 }
 
 
 .empty-state {
 
-    padding: 40px;
+    padding:
+        42px
+        22px;
 
     text-align: center;
 
-    color: #64748b;
+    color:
+        var(--muted);
 
+    font-size: 13px;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Quick Actions
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   QUICK ACTIONS
+   ========================================================= */
 
 .quick-actions {
 
-    padding: 20px;
+    padding: 17px;
 
     display: flex;
 
     flex-direction: column;
 
-    gap: 12px;
-
+    gap: 9px;
 }
 
 
@@ -898,44 +1299,299 @@ body {
 
     align-items: center;
 
-    gap: 12px;
+    gap: 10px;
 
-    padding: 15px;
+    padding:
+        12px
+        13px;
 
-    border-radius: 10px;
+    border:
+        1px solid
+        #eee6f8;
+
+    border-radius: 12px;
+
+    color:
+        #41374e;
+
+    background:
+        #fcfaff;
 
     text-decoration: none;
 
-    color: #334155;
+    font-size: 12px;
 
-    background: #f8fafc;
+    font-weight: 750;
 
-    transition: 0.2s;
-
+    transition:
+        transform .2s ease,
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease;
 }
 
 
 .action-button:hover {
 
-    background: #eff6ff;
+    color:
+        #6d28d9;
 
-    color: #2563eb;
+    border-color:
+        #ddd0f4;
 
+    background:
+        linear-gradient(
+            90deg,
+            #faf5ff,
+            #fff1f8
+        );
+
+    transform:
+        translateX(3px);
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Responsive
-|--------------------------------------------------------------------------
-*/
+.action-button:first-child {
+
+    color:
+        #ffffff;
+
+    border-color:
+        transparent;
+
+    background:
+        var(--gradient);
+
+    box-shadow:
+        0 8px 20px
+        rgba(124,58,237,.16);
+}
+
+
+.action-button:first-child:hover {
+
+    color:
+        #ffffff;
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+html.dark-theme .topbar {
+
+    background:
+        rgba(20,13,30,.88) !important;
+
+    border-bottom-color:
+        rgba(76,29,98,.65) !important;
+}
+
+
+html.dark-theme .page-title {
+
+    color:
+        #f5f3ff !important;
+}
+
+
+html.dark-theme .search-input {
+
+    background:
+        #160f21 !important;
+
+    color:
+        #f5f3ff !important;
+
+    border-color:
+        #4c3262 !important;
+}
+
+
+html.dark-theme .search-input::placeholder {
+
+    color:
+        #91869e !important;
+}
+
+
+html.dark-theme .search-input:hover {
+
+    border-color:
+        #7e4ca3 !important;
+}
+
+
+html.dark-theme .search-input:focus {
+
+    background:
+        #160f21 !important;
+
+    border-color:
+        #a855f7 !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(168,85,247,.14) !important;
+}
+
+
+html.dark-theme .user-name {
+
+    color:
+        #f5f3ff !important;
+}
+
+
+html.dark-theme .user-role {
+
+    color:
+        #a99bb5 !important;
+}
+
+
+html.dark-theme .panel-header {
+
+    border-bottom-color:
+        #3b2948 !important;
+}
+
+
+html.dark-theme .credential-item {
+
+    border-bottom-color:
+        #3b2948 !important;
+}
+
+
+html.dark-theme .credential-item:hover {
+
+    background:
+        linear-gradient(
+            90deg,
+            #241731,
+            #2b1939
+        ) !important;
+}
+
+
+html.dark-theme .service-name {
+
+    color:
+        #f5f3ff !important;
+}
+
+
+html.dark-theme .service-meta {
+
+    color:
+        #a99bb5 !important;
+}
+
+
+html.dark-theme .view-all {
+
+    color:
+        #c084fc !important;
+}
+
+
+html.dark-theme .view-all:hover {
+
+    color:
+        #f472b6 !important;
+}
+
+
+html.dark-theme .action-button {
+
+    background:
+        #211631 !important;
+
+    color:
+        #e9d5ff !important;
+
+    border-color:
+        #4c3262 !important;
+}
+
+
+html.dark-theme .action-button:hover {
+
+    background:
+        linear-gradient(
+            90deg,
+            #32194b,
+            #3a1837
+        ) !important;
+
+    color:
+        #d8b4fe !important;
+
+    border-color:
+        #7e4ca3 !important;
+}
+
+
+html.dark-theme .action-button:first-child {
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #db2777
+        ) !important;
+
+    color:
+        #ffffff !important;
+
+    border-color:
+        transparent !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1200px) {
+
+    .stats-grid {
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .topbar {
+
+        gap: 15px;
+
+        padding:
+            0
+            24px;
+    }
+
+    .content {
+
+        padding:
+            28px
+            24px
+            40px;
+    }
+
+}
+
 
 @media (max-width: 1000px) {
 
     .dashboard-grid {
 
-        grid-template-columns: 1fr;
-
+        grid-template-columns:
+            1fr;
     }
 
 }
@@ -945,49 +1601,45 @@ body {
 
     .sidebar {
 
-        width: 70px;
+        width: 76px;
 
-        padding: 20px 10px;
-
+        padding:
+            18px
+            9px;
     }
 
+    .logo {
+
+        justify-content:
+            center;
+
+        padding:
+            6px
+            0
+            25px;
+    }
 
     .logo-text,
     .nav-text,
     .nav-section {
 
         display: none;
-
     }
-
-
-    .logo {
-
-        justify-content: center;
-
-        padding: 0;
-
-    }
-
 
     .nav-link {
 
-        justify-content: center;
+        justify-content:
+            center;
 
+        padding:
+            13px
+            8px;
     }
-
 
     .main {
 
-        margin-left: 70px;
-
-    }
-
-
-    .topbar {
-
-        padding: 0 20px;
-
+        margin-left:
+            76px;
     }
 
 }
@@ -995,25 +1647,101 @@ body {
 
 @media (max-width: 650px) {
 
-    .page-title,
+    .topbar {
+
+        height: auto;
+
+        min-height: 74px;
+
+        padding:
+            12px
+            15px;
+
+        flex-wrap: wrap;
+    }
+
+    .page-title {
+
+        display: none;
+    }
+
+    .search-form {
+
+        order: 3;
+
+        flex-basis: 100%;
+
+        max-width: none;
+    }
+
     .user-details {
 
         display: none;
-
     }
-
 
     .content {
 
-        padding: 25px 15px;
-
+        padding:
+            20px
+            14px
+            30px;
     }
-
 
     .welcome-banner {
 
-        padding: 25px;
+        padding:
+            25px
+            21px;
 
+        border-radius:
+            18px;
+    }
+
+    .stats-grid {
+
+        grid-template-columns:
+            1fr 1fr;
+
+        gap: 12px;
+    }
+
+    .stat-card {
+
+        min-height:
+            120px;
+
+        padding:
+            16px;
+    }
+
+    .stat-number {
+
+        font-size:
+            25px;
+    }
+
+    .credential-item {
+
+        padding:
+            14px;
+            15px;
+    }
+
+}
+
+
+@media (max-width: 450px) {
+
+    .stats-grid {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .service-meta {
+
+        max-width:
+            150px;
     }
 
 }
@@ -1026,620 +1754,830 @@ body {
 <body>
 
 
-<!-- Sidebar -->
+<!-- =====================================================
+     SIDEBAR
+     ===================================================== -->
 
 <aside class="sidebar">
 
 
-<div class="logo">
+    <div class="logo">
 
-    <div class="logo-icon">
-        🔐
+        <div class="logo-icon">
+            🔐
+        </div>
+
+        <div class="logo-text">
+            Credential Manager
+        </div>
+
     </div>
 
-    <div class="logo-text">
-        Credential Manager
+
+    <!-- Main Menu -->
+
+    <div class="nav-section">
+        Main Menu
     </div>
 
-</div>
+
+    <a
+        href="/dashboard.php"
+        class="nav-link active"
+    >
+
+        <span class="nav-icon">
+            🏠
+        </span>
+
+        <span class="nav-text">
+            Dashboard
+        </span>
+
+    </a>
 
 
-<div class="nav-section">
-    Main Menu
-</div>
+    <a
+        href="/departments.php"
+        class="nav-link"
+    >
+
+        <span class="nav-icon">
+            🏢
+        </span>
+
+        <span class="nav-text">
+            Departments
+        </span>
+
+    </a>
 
 
-<a
-    href="/dashboard.php"
-    class="nav-link active"
->
+    <a
+        href="/credentials.php"
+        class="nav-link"
+    >
 
-    <span class="nav-icon">🏠</span>
+        <span class="nav-icon">
+            🔑
+        </span>
 
-    <span class="nav-text">
-        Dashboard
-    </span>
+        <span class="nav-text">
+            Credentials
+        </span>
 
-</a>
-
-
-<a
-    href="/departments.php"
-    class="nav-link"
->
-
-    <span class="nav-icon">🏢</span>
-
-    <span class="nav-text">
-        Departments
-    </span>
-
-</a>
+    </a>
 
 
-<a
-    href="/credentials.php"
-    class="nav-link"
->
-
-    <span class="nav-icon">🔑</span>
-
-    <span class="nav-text">
-        Credentials
-    </span>
-
-</a>
+    <?php if (
+        canManageUsers()
+        ||
+        canManageDepartments()
+        ||
+        isAdmin()
+    ): ?>
 
 
-<?php if (canManageUsers() || canManageDepartments()): ?>
-
-<div class="nav-section">
-    Administration
-</div>
-
-<?php endif; ?>
+        <div class="nav-section">
+            Administration
+        </div>
 
 
-<?php if (canManageUsers()): ?>
-
-<a
-    href="/manage-users.php"
-    class="nav-link"
->
-
-    <span class="nav-icon">
-        👥
-    </span>
-
-    <span class="nav-text">
-        Manage Users
-    </span>
-
-</a>
-
-<?php endif; ?>
+    <?php endif; ?>
 
 
-<?php if (canManageDepartments()): ?>
-
-<a
-    href="/manage-departments.php"
-    class="nav-link"
->
-
-    <span class="nav-icon">
-        ⚙️
-    </span>
-
-    <span class="nav-text">
-        Manage Departments
-    </span>
-
-</a>
-
-<?php endif; ?>
+    <?php if (canManageUsers()): ?>
 
 
-<div class="sidebar-bottom">
+        <a
+            href="/manage-users.php"
+            class="nav-link"
+        >
 
-<a
-    href="/logout.php"
-    class="nav-link logout-link"
->
+            <span class="nav-icon">
+                👥
+            </span>
 
-    <span class="nav-icon">
-        🚪
-    </span>
+            <span class="nav-text">
+                Manage Users
+            </span>
 
-    <span class="nav-text">
-        Logout
-    </span>
+        </a>
 
-</a>
 
-</div>
+    <?php endif; ?>
+
+
+    <?php if (canManageDepartments()): ?>
+
+
+        <a
+            href="/manage-departments.php"
+            class="nav-link"
+        >
+
+            <span class="nav-icon">
+                ⚙️
+            </span>
+
+            <span class="nav-text">
+                Manage Departments
+            </span>
+
+        </a>
+
+
+    <?php endif; ?>
+
+
+    <?php if (isAdmin()): ?>
+
+
+        <a
+            href="/audit-logs.php"
+            class="nav-link"
+        >
+
+            <span class="nav-icon">
+                📋
+            </span>
+
+            <span class="nav-text">
+                Audit Logs
+            </span>
+
+        </a>
+
+
+    <?php endif; ?>
+
+
+    <?php if (
+        function_exists('canManageRoot')
+        &&
+        canManageRoot()
+    ): ?>
+
+
+        <a
+            href="/root-management.php"
+            class="nav-link"
+        >
+
+            <span class="nav-icon">
+                👑
+            </span>
+
+            <span class="nav-text">
+                Root Management
+            </span>
+
+        </a>
+
+
+    <?php endif; ?>
+
+
+    <div class="sidebar-bottom">
+
+
+        <a
+            href="/logout.php"
+            class="nav-link logout-link"
+        >
+
+            <span class="nav-icon">
+                🚪
+            </span>
+
+            <span class="nav-text">
+                Logout
+            </span>
+
+        </a>
+
+
+    </div>
 
 
 </aside>
 
 
-<!-- Main -->
+<!-- =====================================================
+     MAIN
+     ===================================================== -->
 
 <main class="main">
 
 
-<!-- Topbar -->
+    <!-- =================================================
+         TOPBAR
+         ================================================= -->
 
-<div class="topbar">
+    <header class="topbar">
 
 
-<div class="page-title">
-    Dashboard
-</div>
+        <div class="page-title">
+            Dashboard
+        </div>
 
 
-<!-- Search Form -->
+        <!-- Clean Search -->
 
-<form
-    method="GET"
-    action="/search.php"
-    class="search-form"
->
+        <form
+            method="GET"
+            action="/search.php"
+            class="search-form"
+            role="search"
+        >
 
-    <input
-        type="text"
-        name="q"
-        class="search-input"
-        placeholder="Search services, employees, departments..."
-        required
-    >
+            <input
+                type="search"
+                name="q"
+                class="search-input"
+                placeholder="Search service, employee, or ID..."
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search credentials"
+                required
+            >
 
-    <button
-        type="submit"
-        class="search-button"
-        title="Search"
-    >
-        🔍
-    </button>
 
-</form>
+            <button
+                type="submit"
+                class="search-button"
+                title="Search credentials"
+                aria-label="Search"
+            >
+                🔍
+            </button>
 
 
-<!-- User Profile -->
+        </form>
 
-<div class="user-profile">
 
+        <!-- User -->
 
-<div class="avatar">
+        <div class="user-profile">
 
-<?php
 
-echo htmlspecialchars(
-    strtoupper(
-        substr(
-            $user['full_name'],
-            0,
-            1
-        )
-    )
-);
+            <div class="avatar">
 
-?>
+                <?= htmlspecialchars(
+                    $initial
+                ) ?>
 
-</div>
+            </div>
 
 
-<div class="user-details">
+            <div class="user-details">
 
-<div class="user-name">
 
-<?php
-echo htmlspecialchars($user['full_name']);
-?>
+                <div class="user-name">
 
-</div>
+                    <?= htmlspecialchars(
+                        $fullName
+                    ) ?>
 
+                </div>
 
-<div class="user-role">
 
-<?php
-echo htmlspecialchars(
-    ucfirst($user['role'])
-);
-?>
+                <div class="user-role">
 
-</div>
+                    <?= htmlspecialchars(
+                        $roleLabel
+                    ) ?>
 
-</div>
+                </div>
 
 
-</div>
+            </div>
 
 
-</div>
+        </div>
 
 
-<div class="content">
+    </header>
 
 
-<?php if (isset($_GET['access_denied'])): ?>
+    <!-- =================================================
+         CONTENT
+         ================================================= -->
 
-<div class="alert alert-warning">
+    <div class="content">
 
-    ⚠️ Access denied. You do not have permission to access that feature.
 
-</div>
+        <?php if (
+            isset($_GET['access_denied'])
+        ): ?>
 
-<?php endif; ?>
 
+            <div class="alert alert-warning">
 
-<!-- Welcome -->
+                ⚠️
+                Access denied.
+                You do not have permission
+                to access that feature.
 
-<section class="welcome-banner">
+            </div>
 
-<h1>
 
-Welcome back,
+        <?php endif; ?>
 
-<?php
-echo htmlspecialchars($user['full_name']);
-?>
 
-👋
+        <!-- =================================================
+             WELCOME
+             ================================================= -->
 
-</h1>
+        <section class="welcome-banner">
 
 
-<p>
-Manage your organization credentials securely and efficiently.
-</p>
+            <div class="welcome-content">
 
 
-<div class="role-badge">
+                <h1>
 
-Logged in as
+                    Welcome back,
+                    <?= htmlspecialchars(
+                        $fullName
+                    ) ?>
 
-<?php
-echo htmlspecialchars(
-    ucfirst($user['role'])
-);
-?>
+                    👋
 
-</div>
+                </h1>
 
 
-</section>
+                <p>
 
+                    Manage your organization
+                    credentials securely and
+                    efficiently from one central
+                    workspace.
 
-<!-- Statistics -->
+                </p>
 
-<section class="stats-grid">
 
+                <div class="role-badge">
 
-<div class="stat-card">
+                    ✨
 
-<div class="stat-top">
+                    Logged in as
+                    <?= htmlspecialchars(
+                        $roleLabel
+                    ) ?>
 
-<span class="stat-label">
-Total Credentials
-</span>
+                </div>
 
-<div class="stat-icon">
-🔑
-</div>
 
-</div>
+            </div>
 
 
-<div class="stat-number">
-<?php echo $credentialCount; ?>
-</div>
+        </section>
 
-</div>
 
+        <!-- =================================================
+             STATISTICS
+             ================================================= -->
 
-<div class="stat-card">
+        <section class="stats-grid">
 
-<div class="stat-top">
 
-<span class="stat-label">
-Departments
-</span>
+            <div class="stat-card">
 
-<div class="stat-icon">
-🏢
-</div>
 
-</div>
+                <div class="stat-top">
 
 
-<div class="stat-number">
-<?php echo $departmentCount; ?>
-</div>
+                    <span class="stat-label">
+                        Total Credentials
+                    </span>
 
-</div>
 
+                    <div class="stat-icon">
+                        🔑
+                    </div>
 
-<div class="stat-card">
 
-<div class="stat-top">
+                </div>
 
-<span class="stat-label">
-Employees
-</span>
 
-<div class="stat-icon">
-👨‍💼
-</div>
+                <div class="stat-number">
 
-</div>
+                    <?= $credentialCount ?>
 
+                </div>
 
-<div class="stat-number">
-<?php echo $employeeCount; ?>
-</div>
 
-</div>
+            </div>
 
 
-<div class="stat-card">
+            <div class="stat-card">
 
-<div class="stat-top">
 
-<span class="stat-label">
-Your Role
-</span>
+                <div class="stat-top">
 
-<div class="stat-icon">
-👤
-</div>
 
-</div>
+                    <span class="stat-label">
+                        Departments
+                    </span>
 
 
-<div class="stat-number">
+                    <div class="stat-icon">
+                        🏢
+                    </div>
 
-<?php
-echo htmlspecialchars(
-    ucfirst($user['role'])
-);
-?>
 
-</div>
+                </div>
 
-</div>
 
+                <div class="stat-number">
 
-</section>
+                    <?= $departmentCount ?>
 
+                </div>
 
-<!-- Bottom Grid -->
 
-<section class="dashboard-grid">
+            </div>
 
 
-<!-- Recent Credentials -->
+            <div class="stat-card">
 
-<div class="panel">
 
+                <div class="stat-top">
 
-<div class="panel-header">
 
-<div class="panel-title">
-Recent Credentials
-</div>
+                    <span class="stat-label">
+                        Employees
+                    </span>
 
 
-<a
-    href="/credentials.php"
-    class="view-all"
->
-View All →
-</a>
+                    <div class="stat-icon">
+                        👨‍💼
+                    </div>
 
 
-</div>
+                </div>
 
 
-<?php if (empty($recentCredentials)): ?>
+                <div class="stat-number">
 
+                    <?= $employeeCount ?>
 
-<div class="empty-state">
+                </div>
 
-No credentials have been added yet.
 
-</div>
+            </div>
 
 
-<?php else: ?>
+            <div class="stat-card">
 
 
-<?php foreach ($recentCredentials as $credential): ?>
+                <div class="stat-top">
 
 
-<div class="credential-item">
+                    <span class="stat-label">
+                        Your Role
+                    </span>
 
 
-<div class="service-info">
+                    <div class="stat-icon">
+                        🛡️
+                    </div>
 
 
-<div class="service-icon">
-🔑
-</div>
+                </div>
 
 
-<div>
+                <div class="stat-number">
 
+                    <?= htmlspecialchars(
+                        $roleLabel
+                    ) ?>
 
-<div class="service-name">
+                </div>
 
-<?php
-echo htmlspecialchars(
-    $credential['service_name']
-);
-?>
 
-</div>
+            </div>
 
 
-<div class="service-meta">
+        </section>
 
-Added by
 
-<?php
-echo htmlspecialchars(
-    $credential['created_by_name']
-    ?? 'Unknown'
-);
-?>
+        <!-- =================================================
+             LOWER DASHBOARD
+             ================================================= -->
 
-</div>
+        <section class="dashboard-grid">
 
 
-</div>
+            <!-- =================================================
+                 RECENT CREDENTIALS
+                 ================================================= -->
 
+            <div class="panel">
 
-</div>
 
+                <div class="panel-header">
 
-<div class="service-meta">
 
-<?php
+                    <div class="panel-title">
+                        Recent Credentials
+                    </div>
 
-echo htmlspecialchars(
-    date(
-        'd M Y',
-        strtotime(
-            $credential['created_at']
-        )
-    )
-);
 
-?>
+                    <a
+                        href="/credentials.php"
+                        class="view-all"
+                    >
+                        View All →
+                    </a>
 
-</div>
 
+                </div>
 
-</div>
 
+                <?php if (
+                    empty($recentCredentials)
+                ): ?>
 
-<?php endforeach; ?>
 
+                    <div class="empty-state">
 
-<?php endif; ?>
+                        No credentials have
+                        been added yet.
 
+                    </div>
 
-</div>
 
+                <?php else: ?>
 
-<!-- Quick Actions -->
 
-<div class="panel">
+                    <?php foreach (
+                        $recentCredentials
+                        as $credential
+                    ): ?>
 
 
-<div class="panel-header">
+                        <div class="credential-item">
 
-<div class="panel-title">
-Quick Actions
-</div>
 
-</div>
+                            <div class="service-info">
 
 
-<div class="quick-actions">
+                                <div class="service-icon">
+                                    🔑
+                                </div>
 
 
-<a
-    href="/credentials.php"
-    class="action-button"
->
+                                <div>
 
-🔑
 
-View All Credentials
+                                    <div class="service-name">
 
-</a>
+                                        <?= htmlspecialchars(
+                                            (string)
+                                            $credential[
+                                                'service_name'
+                                            ]
+                                        ) ?>
 
+                                    </div>
 
-<a
-    href="/departments.php"
-    class="action-button"
->
 
-🏢
+                                    <div class="service-meta">
 
-Browse Departments
+                                        Added by
 
-</a>
+                                        <?= htmlspecialchars(
+                                            (string)
+                                            (
+                                                $credential[
+                                                    'created_by_name'
+                                                ]
+                                                ??
+                                                'Unknown'
+                                            )
+                                        ) ?>
 
+                                    </div>
 
-<?php if (canAddCredentials()): ?>
 
+                                </div>
 
-<a
-    href="/departments.php"
-    class="action-button"
->
 
-➕
+                            </div>
 
-Add New Credential
 
-</a>
+                            <div class="service-meta">
 
+                                <?= htmlspecialchars(
+                                    date(
+                                        'd M Y',
+                                        strtotime(
+                                            (string)
+                                            $credential[
+                                                'created_at'
+                                            ]
+                                        )
+                                    )
+                                ) ?>
 
-<?php endif; ?>
+                            </div>
 
 
-<?php if (canManageUsers()): ?>
+                        </div>
 
 
-<a
-    href="/manage-users.php"
-    class="action-button"
->
+                    <?php endforeach; ?>
 
-👥
 
-Manage Users
+                <?php endif; ?>
 
-</a>
 
+            </div>
 
-<?php endif; ?>
 
+            <!-- =================================================
+                 QUICK ACTIONS
+                 ================================================= -->
 
-<?php if (canManageDepartments()): ?>
+            <div class="panel">
 
 
-<a
-    href="/manage-departments.php"
-    class="action-button"
->
+                <div class="panel-header">
 
-⚙️
 
-Manage Departments
+                    <div class="panel-title">
+                        Quick Actions
+                    </div>
 
-</a>
 
+                </div>
 
-<?php endif; ?>
 
+                <div class="quick-actions">
 
-</div>
 
+                    <a
+                        href="/credentials.php"
+                        class="action-button"
+                    >
 
-</div>
+                        🔑
 
+                        <span>
+                            View All Credentials
+                        </span>
 
-</section>
+                    </a>
 
 
-</div>
+                    <a
+                        href="/departments.php"
+                        class="action-button"
+                    >
+
+                        🏢
+
+                        <span>
+                            Browse Departments
+                        </span>
+
+                    </a>
+
+
+                    <?php if (
+                        canAddCredentials()
+                    ): ?>
+
+
+                        <a
+                            href="/departments.php"
+                            class="action-button"
+                        >
+
+                            ➕
+
+                            <span>
+                                Add New Credential
+                            </span>
+
+                        </a>
+
+
+                    <?php endif; ?>
+
+
+                    <?php if (
+                        canManageUsers()
+                    ): ?>
+
+
+                        <a
+                            href="/manage-users.php"
+                            class="action-button"
+                        >
+
+                            👥
+
+                            <span>
+                                Manage Users
+                            </span>
+
+                        </a>
+
+
+                    <?php endif; ?>
+
+
+                    <?php if (
+                        canManageDepartments()
+                    ): ?>
+
+
+                        <a
+                            href="/manage-departments.php"
+                            class="action-button"
+                        >
+
+                            ⚙️
+
+                            <span>
+                                Manage Departments
+                            </span>
+
+                        </a>
+
+
+                    <?php endif; ?>
+
+
+                    <?php if (
+                        isAdmin()
+                    ): ?>
+
+
+                        <a
+                            href="/audit-logs.php"
+                            class="action-button"
+                        >
+
+                            📋
+
+                            <span>
+                                Audit Logs
+                            </span>
+
+                        </a>
+
+
+                    <?php endif; ?>
+
+
+                    <?php if (
+                        function_exists(
+                            'canManageRoot'
+                        )
+                        &&
+                        canManageRoot()
+                    ): ?>
+
+
+                        <a
+                            href="/root-management.php"
+                            class="action-button"
+                        >
+
+                            👑
+
+                            <span>
+                                Root Management
+                            </span>
+
+                        </a>
+
+
+                    <?php endif; ?>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+    </div>
 
 
 </main>
+
+
+<script
+    src="/assets/theme.js"
+></script>
 
 
 </body>

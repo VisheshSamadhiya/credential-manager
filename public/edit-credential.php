@@ -381,6 +381,8 @@ textarea {
 
 </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 <body>
@@ -565,6 +567,8 @@ textarea {
 
 
 </div>
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

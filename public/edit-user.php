@@ -497,6 +497,8 @@ select:focus {
 
 </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 <body>
@@ -771,6 +773,8 @@ select:focus {
     </div>
 
 </div>
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

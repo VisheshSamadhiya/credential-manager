@@ -1,31 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/encryption.php';
 require_once __DIR__ . '/../config/database.php';
 
 requireLogin();
 
-
-/*
-|--------------------------------------------------------------------------
-| Permission Check
-|--------------------------------------------------------------------------
-*/
-
 if (!canViewCredentials()) {
-
-    header(
-        'Location: /dashboard.php?access_denied=view'
-    );
-
+    header('Location: /dashboard.php?access_denied=view');
     exit;
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Get Employee ID
+| Employee Filter
 |--------------------------------------------------------------------------
 */
 
@@ -35,46 +26,32 @@ $employeeId = isset($_GET['employee_id'])
 
 $employee = null;
 
-
-/*
-|--------------------------------------------------------------------------
-| Get Employee Information
-|--------------------------------------------------------------------------
-*/
-
 if ($employeeId > 0) {
 
     $employeeStmt = $pdo->prepare(
         "SELECT
-            employees.id,
-            employees.employee_name,
-            employees.employee_id,
-            employees.department_id,
-            departments.department_name
-        FROM employees
-        LEFT JOIN departments
-            ON employees.department_id = departments.id
-        WHERE employees.id = :employee_id"
+            e.id,
+            e.employee_name,
+            e.employee_id,
+            e.department_id,
+            d.department_name
+         FROM employees e
+         LEFT JOIN departments d
+            ON e.department_id = d.id
+         WHERE e.id = :employee_id
+         LIMIT 1"
     );
 
     $employeeStmt->execute([
         ':employee_id' => $employeeId
     ]);
 
-    $employee = $employeeStmt->fetch(
-        PDO::FETCH_ASSOC
-    );
-
+    $employee = $employeeStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$employee) {
-
-        header(
-            'Location: /departments.php'
-        );
-
+        header('Location: /departments.php');
         exit;
     }
-
 }
 
 
@@ -82,45 +59,52 @@ if ($employeeId > 0) {
 |--------------------------------------------------------------------------
 | Fetch Credentials
 |--------------------------------------------------------------------------
+|
+| IMPORTANT:
+| credential_password is deliberately NOT selected here.
+|
+| Passwords are retrieved only when the user explicitly clicks
+| the Show Password button.
+|
 */
 
 if ($employeeId > 0) {
 
     $stmt = $pdo->prepare(
         "SELECT
-            credentials.id,
-            credentials.service_name,
-            credentials.service_url,
-            credentials.credential_username,
-            credentials.credential_password,
-            credentials.notes,
-            credentials.change_comment,
-            credentials.is_new_version,
-            credentials.created_at,
-            credentials.updated_at,
+            c.id,
+            c.employee_id,
+            c.service_name,
+            c.service_url,
+            c.credential_username,
+            c.notes,
+            c.change_comment,
+            c.is_new_version,
+            c.created_at,
+            c.updated_at,
 
-            employees.employee_name,
-            employees.employee_id AS employee_code,
+            e.employee_name,
+            e.employee_id AS employee_code,
 
-            departments.department_name,
+            d.department_name,
 
-            users.full_name AS created_by_name,
-            users.role AS created_by_role
+            u.full_name AS created_by_name,
+            u.role AS created_by_role
 
-        FROM credentials
+         FROM credentials c
 
-        LEFT JOIN users
-            ON credentials.created_by = users.id
+         LEFT JOIN employees e
+            ON c.employee_id = e.id
 
-        LEFT JOIN employees
-            ON credentials.employee_id = employees.id
+         LEFT JOIN departments d
+            ON e.department_id = d.id
 
-        LEFT JOIN departments
-            ON employees.department_id = departments.id
+         LEFT JOIN users u
+            ON c.created_by = u.id
 
-        WHERE credentials.employee_id = :employee_id
+         WHERE c.employee_id = :employee_id
 
-        ORDER BY credentials.id DESC"
+         ORDER BY c.id DESC"
     );
 
     $stmt->execute([
@@ -131,47 +115,43 @@ if ($employeeId > 0) {
 
     $stmt = $pdo->prepare(
         "SELECT
-            credentials.id,
-            credentials.service_name,
-            credentials.service_url,
-            credentials.credential_username,
-            credentials.credential_password,
-            credentials.notes,
-            credentials.change_comment,
-            credentials.is_new_version,
-            credentials.created_at,
-            credentials.updated_at,
+            c.id,
+            c.employee_id,
+            c.service_name,
+            c.service_url,
+            c.credential_username,
+            c.notes,
+            c.change_comment,
+            c.is_new_version,
+            c.created_at,
+            c.updated_at,
 
-            employees.employee_name,
-            employees.employee_id AS employee_code,
+            e.employee_name,
+            e.employee_id AS employee_code,
 
-            departments.department_name,
+            d.department_name,
 
-            users.full_name AS created_by_name,
-            users.role AS created_by_role
+            u.full_name AS created_by_name,
+            u.role AS created_by_role
 
-        FROM credentials
+         FROM credentials c
 
-        LEFT JOIN users
-            ON credentials.created_by = users.id
+         LEFT JOIN employees e
+            ON c.employee_id = e.id
 
-        LEFT JOIN employees
-            ON credentials.employee_id = employees.id
+         LEFT JOIN departments d
+            ON e.department_id = d.id
 
-        LEFT JOIN departments
-            ON employees.department_id = departments.id
+         LEFT JOIN users u
+            ON c.created_by = u.id
 
-        ORDER BY credentials.id DESC"
+         ORDER BY c.id DESC"
     );
 
     $stmt->execute();
-
 }
 
-
-$credentials = $stmt->fetchAll(
-    PDO::FETCH_ASSOC
-);
+$credentials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 /*
@@ -180,630 +160,2005 @@ $credentials = $stmt->fetchAll(
 |--------------------------------------------------------------------------
 */
 
-$accessDenied = isset(
-    $_GET['access_denied']
-);
-
-$updated = isset(
-    $_GET['updated']
-);
-
-$deleted = isset(
-    $_GET['deleted']
-);
-
-$added = isset(
-    $_GET['added']
-);
+$accessDenied = isset($_GET['access_denied']);
+$updated      = isset($_GET['updated']);
+$deleted      = isset($_GET['deleted']);
+$added        = isset($_GET['added']);
 
 ?>
-
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>
-    Credentials - Credential Manager
-</title>
+    <meta
+        name="referrer"
+        content="no-referrer"
+    >
 
+    <title>
+        Credentials - Credential Manager
+    </title>
 
-<style>
 
-* {
-    box-sizing: border-box;
-}
+    <style>
 
-body {
+        :root {
 
-    margin: 0;
+            --purple-50: #faf5ff;
+            --purple-100: #f3e8ff;
+            --purple-200: #e9d5ff;
+            --purple-300: #d8b4fe;
+            --purple-400: #c084fc;
+            --purple-500: #a855f7;
+            --purple-600: #9333ea;
+            --purple-700: #7e22ce;
+            --purple-800: #6b21a8;
+            --purple-900: #581c87;
 
-    font-family:
-        Arial,
-        sans-serif;
+            --pink-400: #f472b6;
+            --pink-500: #ec4899;
+            --pink-600: #db2777;
 
-    background:
-        #f4f6f9;
+            --indigo-900: #1e1b4b;
 
-    color:
-        #333;
+            --text-main: #241b35;
+            --text-muted: #766b84;
 
-}
+            --background: #f8f6fc;
+            --card: #ffffff;
 
+            --border: #eee7f5;
 
-/*
-|--------------------------------------------------------------------------
-| Navbar
-|--------------------------------------------------------------------------
-*/
+            --success-bg: #ecfdf5;
+            --success-text: #047857;
 
-.navbar {
+            --warning-bg: #fffbeb;
+            --warning-text: #b45309;
 
-    background:
-        #2b2b2b;
+            --danger-bg: #fef2f2;
+            --danger-text: #b91c1c;
 
-    padding:
-        18px 40px;
+            --shadow-sm:
+                0 2px 8px rgba(88, 28, 135, 0.05);
 
-    color:
-        white;
+            --shadow-md:
+                0 10px 30px rgba(88, 28, 135, 0.08);
 
-    display:
-        flex;
+            --gradient:
+                linear-gradient(
+                    135deg,
+                    #7e22ce 0%,
+                    #a855f7 48%,
+                    #ec4899 100%
+                );
 
-    justify-content:
-        space-between;
+            --sidebar-width: 260px;
+        }
 
-    align-items:
-        center;
 
-}
+        * {
+            box-sizing: border-box;
+        }
 
-.navbar-title {
 
-    font-size:
-        18px;
+        html {
+            scroll-behavior: smooth;
+        }
 
-    font-weight:
-        bold;
 
-}
+        body {
 
-.navbar-links {
+            margin: 0;
 
-    display:
-        flex;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
 
-    align-items:
-        center;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(236, 72, 153, 0.08),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at top left,
+                    rgba(168, 85, 247, 0.08),
+                    transparent 30%
+                ),
+                var(--background);
 
-    gap:
-        25px;
+            color: var(--text-main);
 
-}
+            min-height: 100vh;
+        }
 
-.navbar a {
 
-    color:
-        white;
+        a {
+            color: inherit;
+        }
 
-    text-decoration:
-        none;
 
-}
+        button,
+        input {
+            font-family: inherit;
+        }
 
-.navbar a:hover {
 
-    text-decoration:
-        underline;
+        /*
+        |--------------------------------------------------------------------------
+        | Sidebar
+        |--------------------------------------------------------------------------
+        */
 
-}
+        .sidebar {
 
+            position: fixed;
 
-/*
-|--------------------------------------------------------------------------
-| Container
-|--------------------------------------------------------------------------
-*/
+            top: 0;
+            left: 0;
+            bottom: 0;
 
-.container {
+            width: var(--sidebar-width);
 
-    max-width:
-        1400px;
+            background:
+                linear-gradient(
+                    180deg,
+                    #24113f 0%,
+                    #32145d 45%,
+                    #4c176f 100%
+                );
 
-    margin:
-        auto;
+            color: #fff;
 
-    padding:
-        40px;
+            padding: 24px 16px;
 
-}
+            z-index: 100;
 
+            overflow-y: auto;
 
-/*
-|--------------------------------------------------------------------------
-| Header
-|--------------------------------------------------------------------------
-*/
+            box-shadow:
+                8px 0 30px rgba(48, 16, 73, 0.15);
+        }
 
-.header {
 
-    display:
-        flex;
+        .brand {
 
-    justify-content:
-        space-between;
+            display: flex;
 
-    align-items:
-        center;
+            align-items: center;
 
-    gap:
-        20px;
+            gap: 12px;
 
-    margin-bottom:
-        25px;
+            padding:
+                4px
+                12px
+                28px;
 
-}
+            border-bottom:
+                1px solid
+                rgba(255, 255, 255, 0.10);
 
-.header-actions {
+            margin-bottom: 24px;
+        }
 
-    display:
-        flex;
 
-    gap:
-        10px;
+        .brand-icon {
 
-    flex-wrap:
-        wrap;
+            width: 42px;
+            height: 42px;
 
-}
+            border-radius: 13px;
 
+            display: flex;
 
-/*
-|--------------------------------------------------------------------------
-| Buttons
-|--------------------------------------------------------------------------
-*/
+            align-items: center;
+            justify-content: center;
 
-.button {
+            font-size: 21px;
 
-    display:
-        inline-block;
+            background:
+                linear-gradient(
+                    135deg,
+                    #a855f7,
+                    #ec4899
+                );
 
-    background:
-        #333;
+            box-shadow:
+                0 8px 20px
+                rgba(236, 72, 153, 0.25);
+        }
 
-    color:
-        white;
 
-    padding:
-        10px 16px;
+        .brand-text strong {
 
-    text-decoration:
-        none;
+            display: block;
 
-    border-radius:
-        5px;
+            font-size: 16px;
 
-    border:
-        none;
+            letter-spacing: 0.1px;
+        }
 
-    cursor:
-        pointer;
 
-}
+        .brand-text span {
 
-.button:hover {
+            display: block;
 
-    background:
-        #555;
+            margin-top: 2px;
 
-}
+            font-size: 11px;
 
-.add-button {
+            color:
+                rgba(255, 255, 255, 0.58);
+        }
 
-    display:
-        inline-block;
 
-    background:
-        #2f7d32;
+        .nav-section {
 
-    color:
-        white;
+            margin-bottom: 26px;
+        }
 
-    padding:
-        11px 18px;
 
-    text-decoration:
-        none;
+        .nav-title {
 
-    border-radius:
-        5px;
+            padding:
+                0
+                12px
+                9px;
 
-    font-weight:
-        bold;
+            font-size: 10px;
 
-}
+            font-weight: 700;
 
-.add-button:hover {
+            letter-spacing: 1.2px;
 
-    background:
-        #236126;
+            text-transform: uppercase;
 
-}
+            color:
+                rgba(255, 255, 255, 0.40);
+        }
 
-.delete-button {
 
-    background:
-        #b00020;
+        .nav-link {
 
-    color:
-        white;
+            display: flex;
 
-    border:
-        none;
+            align-items: center;
 
-    padding:
-        10px 14px;
+            gap: 12px;
 
-    cursor:
-        pointer;
+            padding:
+                11px
+                12px;
 
-    border-radius:
-        5px;
+            margin-bottom: 5px;
 
-}
+            border-radius: 11px;
 
-.delete-button:hover {
+            color:
+                rgba(255, 255, 255, 0.72);
 
-    background:
-        #850018;
+            text-decoration: none;
 
-}
+            font-size: 13px;
 
+            font-weight: 500;
 
-/*
-|--------------------------------------------------------------------------
-| Messages
-|--------------------------------------------------------------------------
-*/
+            transition:
+                0.2s ease;
+        }
 
-.success {
 
-    background:
-        #d4edda;
+        .nav-link:hover {
 
-    color:
-        #155724;
+            color: #fff;
 
-    padding:
-        15px;
+            background:
+                rgba(255, 255, 255, 0.08);
 
-    margin-bottom:
-        20px;
+            transform:
+                translateX(2px);
+        }
 
-    border-radius:
-        5px;
 
-}
+        .nav-link.active {
 
-.access-denied {
+            color: #fff;
 
-    background:
-        #fff3cd;
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(168, 85, 247, 0.75),
+                    rgba(236, 72, 153, 0.65)
+                );
 
-    color:
-        #856404;
+            box-shadow:
+                0 7px 20px
+                rgba(168, 85, 247, 0.22);
+        }
 
-    padding:
-        15px;
 
-    margin-bottom:
-        20px;
+        .nav-icon {
 
-    border-radius:
-        5px;
+            width: 19px;
 
-}
+            text-align: center;
 
+            font-size: 16px;
+        }
 
-/*
-|--------------------------------------------------------------------------
-| Employee Information
-|--------------------------------------------------------------------------
-*/
 
-.employee-info {
+        /*
+        |--------------------------------------------------------------------------
+        | Main
+        |--------------------------------------------------------------------------
+        */
 
-    background:
-        white;
+        .main {
 
-    padding:
-        20px;
+            margin-left: var(--sidebar-width);
 
-    border-radius:
-        10px;
+            min-height: 100vh;
+        }
 
-    margin-bottom:
-        25px;
 
-}
+        /*
+        |--------------------------------------------------------------------------
+        | Topbar
+        |--------------------------------------------------------------------------
+        */
 
+        .topbar {
 
-/*
-|--------------------------------------------------------------------------
-| Table
-|--------------------------------------------------------------------------
-*/
+            height: 76px;
 
-.table-wrapper {
+            padding:
+                0 34px;
 
-    width:
-        100%;
+            display: flex;
 
-    overflow-x:
-        auto;
+            align-items: center;
 
-    background:
-        white;
+            justify-content: space-between;
 
-    border-radius:
-        10px;
+            gap: 20px;
 
-}
+            background:
+                rgba(255, 255, 255, 0.88);
 
-table {
+            backdrop-filter:
+                blur(14px);
 
-    width:
-        100%;
+            border-bottom:
+                1px solid
+                var(--border);
 
-    border-collapse:
-        collapse;
+            position: sticky;
 
-}
+            top: 0;
 
-th,
-td {
+            z-index: 50;
+        }
 
-    padding:
-        15px;
 
-    text-align:
-        left;
+        .topbar-title {
 
-    border-bottom:
-        1px solid #ddd;
+            min-width: 0;
+        }
 
-    vertical-align:
-        top;
 
-}
+        .topbar-title h1 {
 
-th {
+            margin: 0;
 
-    background:
-        #eeeeee;
+            font-size: 21px;
 
-}
+            font-weight: 750;
 
-tr:hover {
+            color:
+                var(--text-main);
+        }
 
-    background:
-        #f9f9f9;
 
-}
+        .topbar-title p {
 
+            margin:
+                4px
+                0
+                0;
 
-/*
-|--------------------------------------------------------------------------
-| Password
-|--------------------------------------------------------------------------
-*/
+            font-size: 12px;
 
-.password-field {
+            color:
+                var(--text-muted);
+        }
 
-    min-width:
-        260px;
 
-}
+        .topbar-right {
 
-.password-actions {
+            display: flex;
 
-    display:
-        flex;
+            align-items: center;
 
-    align-items:
-        center;
+            gap: 13px;
+        }
 
-    gap:
-        8px;
 
-    flex-wrap:
-        wrap;
+        .top-search {
 
-}
+            position: relative;
+        }
 
-.password {
 
-    font-family:
-        monospace;
+        .top-search input {
 
-    font-size:
-        14px;
+            width: 260px;
 
-    word-break:
-        break-all;
+            height: 40px;
 
-}
+            border:
+                1px solid
+                var(--border);
 
-.toggle-button {
+            border-radius: 11px;
 
-    padding:
-        6px 10px;
+            padding:
+                0
+                13px;
 
-    border:
-        none;
+            outline: none;
 
-    cursor:
-        pointer;
+            background: #fff;
 
-    border-radius:
-        4px;
+            color: var(--text-main);
 
-    background:
-        #e5e5e5;
+            transition:
+                0.2s ease;
+        }
 
-}
 
+        .top-search input:focus {
 
-/*
-|--------------------------------------------------------------------------
-| URL
-|--------------------------------------------------------------------------
-*/
+            border-color:
+                var(--purple-400);
 
-.url-link {
+            box-shadow:
+                0 0 0 4px
+                rgba(168, 85, 247, 0.10);
+        }
 
-    color:
-        #0066cc;
 
-    text-decoration:
-        none;
+        .user-pill {
 
-}
+            display: flex;
 
+            align-items: center;
 
-/*
-|--------------------------------------------------------------------------
-| Actions
-|--------------------------------------------------------------------------
-*/
+            gap: 9px;
 
-.actions {
+            padding:
+                5px
+                10px
+                5px
+                5px;
 
-    display:
-        flex;
+            border:
+                1px solid
+                var(--border);
 
-    gap:
-        8px;
+            border-radius: 12px;
 
-    align-items:
-        center;
+            background: #fff;
+        }
 
-    flex-wrap:
-        wrap;
 
-}
+        .avatar {
 
+            width: 31px;
+            height: 31px;
 
-/*
-|--------------------------------------------------------------------------
-| Empty
-|--------------------------------------------------------------------------
-*/
+            border-radius: 9px;
 
-.empty {
+            display: flex;
 
-    background:
-        white;
+            align-items: center;
+            justify-content: center;
 
-    padding:
-        40px;
+            color: #fff;
 
-    margin-top:
-        20px;
+            font-size: 12px;
 
-    text-align:
-        center;
+            font-weight: 700;
 
-    border-radius:
-        10px;
+            background:
+                var(--gradient);
+        }
 
-}
 
+        .user-info {
 
-/*
-|--------------------------------------------------------------------------
-| Version Comment
-|--------------------------------------------------------------------------
-*/
+            line-height: 1.2;
+        }
 
-.version-comment {
 
-    margin-top:
-        5px;
+        .user-name {
 
-    font-size:
-        12px;
+            font-size: 12px;
 
-    color:
-        #666;
+            font-weight: 700;
+        }
 
-}
 
+        .user-role {
 
-/*
-|--------------------------------------------------------------------------
-| Responsive
-|--------------------------------------------------------------------------
-*/
+            margin-top: 2px;
 
-@media (max-width: 800px) {
+            font-size: 10px;
 
-    .navbar {
+            color:
+                var(--text-muted);
 
-        flex-direction:
-            column;
+            text-transform: capitalize;
+        }
 
-        align-items:
-            flex-start;
 
-        gap:
-            15px;
+        /*
+        |--------------------------------------------------------------------------
+        | Content
+        |--------------------------------------------------------------------------
+        */
 
-        padding:
-            20px;
+        .content {
 
-    }
+            padding: 32px;
+        }
 
-    .navbar-links {
 
-        flex-wrap:
-            wrap;
+        .page-heading {
 
-        gap:
-            15px;
+            display: flex;
 
-    }
+            justify-content: space-between;
 
-    .container {
+            align-items: flex-start;
 
-        padding:
-            20px;
+            gap: 20px;
 
-    }
+            margin-bottom: 25px;
+        }
 
-    .header {
 
-        flex-direction:
-            column;
+        .heading-left h2 {
 
-        align-items:
-            flex-start;
+            margin: 0;
 
-    }
+            font-size: 27px;
 
-}
+            line-height: 1.2;
 
-</style>
+            font-weight: 800;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    var(--purple-700),
+                    var(--pink-600)
+                );
+
+            -webkit-background-clip: text;
+
+            background-clip: text;
+
+            color: transparent;
+        }
+
+
+        .heading-left p {
+
+            margin:
+                8px
+                0
+                0;
+
+            color:
+                var(--text-muted);
+
+            font-size: 13px;
+        }
+
+
+        .header-actions {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            flex-wrap: wrap;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buttons
+        |--------------------------------------------------------------------------
+        */
+
+        .button {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 6px;
+
+            min-height: 40px;
+
+            padding:
+                0
+                14px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            text-decoration: none;
+
+            cursor: pointer;
+
+            font-size: 12px;
+
+            font-weight: 650;
+
+            color:
+                var(--purple-700);
+
+            background:
+                var(--purple-50);
+
+            border:
+                1px solid
+                var(--purple-200);
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .button:hover {
+
+            transform:
+                translateY(-1px);
+
+            border-color:
+                var(--purple-300);
+
+            box-shadow:
+                var(--shadow-sm);
+        }
+
+
+        .add-button {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 7px;
+
+            min-height: 40px;
+
+            padding:
+                0
+                16px;
+
+            border-radius: 10px;
+
+            text-decoration: none;
+
+            color: #fff;
+
+            background:
+                var(--gradient);
+
+            box-shadow:
+                0 7px 18px
+                rgba(168, 85, 247, 0.23);
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .add-button:hover {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 10px 24px
+                rgba(236, 72, 153, 0.25);
+        }
+
+
+        .delete-button {
+
+            min-height: 36px;
+
+            padding:
+                0
+                11px;
+
+            border:
+                1px solid
+                #fecaca;
+
+            border-radius: 8px;
+
+            background:
+                var(--danger-bg);
+
+            color:
+                var(--danger-text);
+
+            cursor: pointer;
+
+            font-size: 11px;
+
+            font-weight: 650;
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .delete-button:hover {
+
+            background:
+                #fee2e2;
+
+            transform:
+                translateY(-1px);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Messages
+        |--------------------------------------------------------------------------
+        */
+
+        .message {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding:
+                13px
+                15px;
+
+            margin-bottom: 18px;
+
+            border-radius: 11px;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+            border: 1px solid transparent;
+        }
+
+
+        .message.success {
+
+            background:
+                var(--success-bg);
+
+            color:
+                var(--success-text);
+
+            border-color:
+                #a7f3d0;
+        }
+
+
+        .message.warning {
+
+            background:
+                var(--warning-bg);
+
+            color:
+                var(--warning-text);
+
+            border-color:
+                #fde68a;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Employee Card
+        |--------------------------------------------------------------------------
+        */
+
+        .employee-card {
+
+            position: relative;
+
+            overflow: hidden;
+
+            margin-bottom: 20px;
+
+            padding: 20px;
+
+            border-radius: 16px;
+
+            color: #fff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #581c87 0%,
+                    #7e22ce 42%,
+                    #db2777 100%
+                );
+
+            box-shadow:
+                0 12px 30px
+                rgba(126, 34, 206, 0.18);
+        }
+
+
+        .employee-card::after {
+
+            content: "";
+
+            position: absolute;
+
+            width: 190px;
+            height: 190px;
+
+            right: -55px;
+            top: -90px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(255,255,255,0.10);
+        }
+
+
+        .employee-card h3 {
+
+            position: relative;
+
+            z-index: 1;
+
+            margin:
+                0
+                0
+                12px;
+
+            font-size: 17px;
+        }
+
+
+        .employee-details {
+
+            position: relative;
+
+            z-index: 1;
+
+            display: flex;
+
+            gap: 10px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .employee-detail {
+
+            padding:
+                7px
+                11px;
+
+            border-radius: 8px;
+
+            background:
+                rgba(255,255,255,0.11);
+
+            font-size: 11px;
+
+            color:
+                rgba(255,255,255,0.88);
+        }
+
+
+        .employee-detail strong {
+
+            color: #fff;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
+
+        .search-card {
+
+            margin-bottom: 20px;
+
+            padding: 18px;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 15px;
+
+            background:
+                rgba(255,255,255,0.95);
+
+            box-shadow:
+                var(--shadow-sm);
+        }
+
+
+        .search-top {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 11px;
+        }
+
+
+        .search-label {
+
+            font-size: 12px;
+
+            font-weight: 750;
+
+            color:
+                var(--text-main);
+        }
+
+
+        .search-hint {
+
+            font-size: 10px;
+
+            color:
+                var(--text-muted);
+        }
+
+
+        .search-row {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+        }
+
+
+        .search-input {
+
+            flex: 1;
+
+            min-width: 0;
+
+            height: 43px;
+
+            padding:
+                0
+                14px;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 10px;
+
+            outline: none;
+
+            background: #fff;
+
+            color:
+                var(--text-main);
+
+            font-size: 13px;
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .search-input:focus {
+
+            border-color:
+                var(--purple-400);
+
+            box-shadow:
+                0 0 0 4px
+                rgba(168, 85, 247, 0.09);
+        }
+
+
+        .clear-search {
+
+            height: 43px;
+
+            padding:
+                0
+                14px;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 10px;
+
+            background:
+                #fff;
+
+            color:
+                var(--text-muted);
+
+            cursor: pointer;
+
+            font-size: 11px;
+
+            font-weight: 650;
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .clear-search:hover {
+
+            border-color:
+                var(--purple-300);
+
+            color:
+                var(--purple-700);
+        }
+
+
+        .search-result-count {
+
+            margin-top: 9px;
+
+            font-size: 10px;
+
+            color:
+                var(--text-muted);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Table Card
+        |--------------------------------------------------------------------------
+        */
+
+        .table-card {
+
+            overflow: hidden;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 16px;
+
+            background:
+                #fff;
+
+            box-shadow:
+                var(--shadow-md);
+        }
+
+
+        .table-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 15px;
+
+            padding:
+                18px
+                20px;
+
+            border-bottom:
+                1px solid
+                var(--border);
+        }
+
+
+        .table-title {
+
+            font-size: 14px;
+
+            font-weight: 750;
+        }
+
+
+        .table-subtitle {
+
+            margin-top: 3px;
+
+            font-size: 10px;
+
+            color:
+                var(--text-muted);
+        }
+
+
+        .table-wrapper {
+
+            width: 100%;
+
+            overflow-x: auto;
+        }
+
+
+        table {
+
+            width: 100%;
+
+            min-width: 1180px;
+
+            border-collapse: collapse;
+        }
+
+
+        th,
+        td {
+
+            padding:
+                14px
+                15px;
+
+            text-align: left;
+
+            vertical-align: top;
+
+            border-bottom:
+                1px solid
+                #f1edf5;
+        }
+
+
+        th {
+
+            background:
+                #fcfaff;
+
+            color:
+                #756a80;
+
+            font-size: 10px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.65px;
+
+            font-weight: 750;
+
+            white-space: nowrap;
+        }
+
+
+        td {
+
+            font-size: 12px;
+
+            color:
+                #43384d;
+        }
+
+
+        tbody tr {
+
+            transition:
+                0.15s ease;
+        }
+
+
+        tbody tr:hover {
+
+            background:
+                #fdfaff;
+        }
+
+
+        tbody tr:last-child td {
+
+            border-bottom: none;
+        }
+
+
+        tbody tr.search-hidden {
+
+            display: none;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Service
+        |--------------------------------------------------------------------------
+        */
+
+        .service-name {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            font-weight: 750;
+
+            color:
+                #35273e;
+        }
+
+
+        .service-icon {
+
+            width: 31px;
+            height: 31px;
+
+            flex-shrink: 0;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 9px;
+
+            color:
+                var(--purple-700);
+
+            background:
+                var(--purple-100);
+
+            font-size: 13px;
+        }
+
+
+        .version-comment {
+
+            display: inline-block;
+
+            margin-top: 7px;
+
+            padding:
+                3px
+                7px;
+
+            border-radius: 5px;
+
+            color:
+                var(--pink-600);
+
+            background:
+                #fce7f3;
+
+            font-size: 9px;
+
+            font-weight: 700;
+        }
+
+
+        .change-comment {
+
+            max-width: 220px;
+
+            margin-top: 6px;
+
+            color:
+                var(--text-muted);
+
+            font-size: 10px;
+
+            line-height: 1.4;
+
+            word-break: break-word;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Employee / Department
+        |--------------------------------------------------------------------------
+        */
+
+        .employee-name {
+
+            font-weight: 650;
+
+            color:
+                #3e3047;
+        }
+
+
+        .employee-id {
+
+            display: inline-block;
+
+            margin-top: 4px;
+
+            color:
+                var(--purple-600);
+
+            font-size: 10px;
+
+            font-weight: 650;
+        }
+
+
+        .department-badge {
+
+            display: inline-flex;
+
+            padding:
+                5px
+                8px;
+
+            border-radius: 7px;
+
+            color:
+                #6b21a8;
+
+            background:
+                #f3e8ff;
+
+            font-size: 10px;
+
+            font-weight: 650;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Username
+        |--------------------------------------------------------------------------
+        */
+
+        .username {
+
+            padding:
+                6px
+                8px;
+
+            border-radius: 7px;
+
+            background:
+                #f8f6fa;
+
+            color:
+                #51445b;
+
+            font-family:
+                ui-monospace,
+                SFMono-Regular,
+                Menlo,
+                Monaco,
+                Consolas,
+                monospace;
+
+            font-size: 10px;
+
+            word-break: break-all;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Password
+        |--------------------------------------------------------------------------
+        */
+
+        .password-field {
+
+            min-width: 210px;
+        }
+
+
+        .password-actions {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+        }
+
+
+        .password {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            min-width: 105px;
+
+            max-width: 210px;
+
+            padding:
+                7px
+                9px;
+
+            border-radius: 8px;
+
+            background:
+                #f7f3fb;
+
+            color:
+                #51445b;
+
+            font-family:
+                ui-monospace,
+                SFMono-Regular,
+                Menlo,
+                Monaco,
+                Consolas,
+                monospace;
+
+            font-size: 11px;
+
+            letter-spacing: 1px;
+
+            word-break: break-all;
+
+            user-select: none;
+
+            -webkit-user-select: none;
+
+            cursor: default;
+        }
+
+
+        .password.visible {
+
+            background:
+                #fff1f8;
+
+            color:
+                #9d174d;
+
+            letter-spacing: 0;
+
+        }
+
+
+        .toggle-button {
+
+            min-height: 32px;
+
+            padding:
+                0
+                10px;
+
+            border:
+                1px solid
+                var(--purple-200);
+
+            border-radius: 8px;
+
+            background:
+                var(--purple-50);
+
+            color:
+                var(--purple-700);
+
+            cursor: pointer;
+
+            font-size: 10px;
+
+            font-weight: 700;
+
+            transition:
+                0.2s ease;
+        }
+
+
+        .toggle-button:hover {
+
+            background:
+                var(--purple-100);
+
+            border-color:
+                var(--purple-300);
+        }
+
+
+        .toggle-button:disabled {
+
+            opacity: 0.55;
+
+            cursor: wait;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | URL
+        |--------------------------------------------------------------------------
+        */
+
+        .url-link {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 5px;
+
+            color:
+                var(--purple-600);
+
+            text-decoration: none;
+
+            font-size: 11px;
+
+            font-weight: 650;
+        }
+
+
+        .url-link:hover {
+
+            color:
+                var(--pink-600);
+
+            text-decoration: underline;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notes
+        |--------------------------------------------------------------------------
+        */
+
+        .notes-cell {
+
+            max-width: 250px;
+
+            color:
+                var(--text-muted);
+
+            line-height: 1.45;
+
+            white-space: pre-wrap;
+
+            word-break: break-word;
+
+            font-size: 10px;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Created
+        |--------------------------------------------------------------------------
+        */
+
+        .created-by {
+
+            font-weight: 650;
+
+            color:
+                #4a3a54;
+        }
+
+
+        .created-role {
+
+            display: inline-block;
+
+            margin-top: 4px;
+
+            padding:
+                3px
+                6px;
+
+            border-radius: 5px;
+
+            color:
+                var(--purple-700);
+
+            background:
+                var(--purple-100);
+
+            font-size: 9px;
+
+            text-transform: capitalize;
+
+            font-weight: 700;
+        }
+
+
+        .created-date {
+
+            color:
+                var(--text-muted);
+
+            font-size: 10px;
+
+            white-space: nowrap;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Actions
+        |--------------------------------------------------------------------------
+        */
+
+        .actions {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .viewer-badge {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            padding:
+                6px
+                8px;
+
+            border-radius: 7px;
+
+            color:
+                #7e22ce;
+
+            background:
+                #faf5ff;
+
+            font-size: 9px;
+
+            font-weight: 700;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Empty State
+        |--------------------------------------------------------------------------
+        */
+
+        .empty {
+
+            padding:
+                65px
+                30px;
+
+            text-align: center;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 16px;
+
+            background:
+                #fff;
+
+            box-shadow:
+                var(--shadow-md);
+        }
+
+
+        .empty-icon {
+
+            width: 58px;
+            height: 58px;
+
+            margin:
+                0
+                auto
+                15px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 17px;
+
+            background:
+                var(--purple-100);
+
+            color:
+                var(--purple-700);
+
+            font-size: 24px;
+        }
+
+
+        .empty h3 {
+
+            margin:
+                0
+                0
+                7px;
+
+            font-size: 17px;
+        }
+
+
+        .empty p {
+
+            margin:
+                0
+                0
+                18px;
+
+            color:
+                var(--text-muted);
+
+            font-size: 11px;
+        }
+
+
+        .no-search-results {
+
+            display: none;
+
+            padding:
+                28px;
+
+            text-align: center;
+
+            color:
+                var(--text-muted);
+
+            font-size: 11px;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mobile
+        |--------------------------------------------------------------------------
+        */
+
+        @media (max-width: 1000px) {
+
+            :root {
+                --sidebar-width: 78px;
+            }
+
+
+            .sidebar {
+                padding:
+                    20px
+                    10px;
+            }
+
+
+            .brand {
+                justify-content: center;
+                padding:
+                    4px
+                    0
+                    22px;
+            }
+
+
+            .brand-text,
+            .nav-title {
+                display: none;
+            }
+
+
+            .nav-link {
+                justify-content: center;
+                padding: 12px 8px;
+            }
+
+
+            .nav-link span:not(.nav-icon) {
+                display: none;
+            }
+
+
+            .main {
+                margin-left: 78px;
+            }
+
+
+            .topbar {
+                padding:
+                    0
+                    20px;
+            }
+
+
+            .top-search input {
+                width: 210px;
+            }
+
+
+            .content {
+                padding: 24px 20px;
+            }
+        }
+
+
+        @media (max-width: 700px) {
+
+            .topbar {
+                height: auto;
+
+                min-height: 70px;
+
+                padding:
+                    14px
+                    16px;
+
+                align-items: flex-start;
+
+                flex-direction: column;
+            }
+
+
+            .topbar-right {
+                width: 100%;
+            }
+
+
+            .top-search {
+                flex: 1;
+            }
+
+
+            .top-search input {
+                width: 100%;
+            }
+
+
+            .user-pill {
+                flex-shrink: 0;
+            }
+
+
+            .page-heading {
+                flex-direction: column;
+            }
+
+
+            .header-actions {
+                width: 100%;
+            }
+
+
+            .header-actions > * {
+                flex: 1;
+            }
+
+
+            .search-row {
+                flex-direction: column;
+            }
+
+
+            .search-input,
+            .clear-search {
+                width: 100%;
+            }
+
+
+            .employee-details {
+                flex-direction: column;
+            }
+
+
+            .employee-detail {
+                width: fit-content;
+            }
+        }
+
+
+        @media (max-width: 480px) {
+
+            :root {
+                --sidebar-width: 64px;
+            }
+
+
+            .sidebar {
+                padding:
+                    16px
+                    7px;
+            }
+
+
+            .brand-icon {
+                width: 38px;
+                height: 38px;
+            }
+
+
+            .main {
+                margin-left: 64px;
+            }
+
+
+            .content {
+                padding:
+                    18px
+                    13px;
+            }
+
+
+            .heading-left h2 {
+                font-size: 23px;
+            }
+
+
+            .topbar-title h1 {
+                font-size: 18px;
+            }
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="/assets/theme.css">
 
 </head>
 
@@ -811,673 +2166,1242 @@ tr:hover {
 <body>
 
 
-<!-- Navbar -->
+<!--
+|--------------------------------------------------------------------------
+| Sidebar
+|--------------------------------------------------------------------------
+-->
 
-<div class="navbar">
+<aside class="sidebar">
 
-    <div class="navbar-title">
 
-        Credential Manager
+    <div class="brand">
+
+        <div class="brand-icon">
+            🔐
+        </div>
+
+        <div class="brand-text">
+
+            <strong>
+                Credential Manager
+            </strong>
+
+            <span>
+                Secure Access Platform
+            </span>
+
+        </div>
 
     </div>
 
 
-    <div class="navbar-links">
+    <div class="nav-section">
 
-        <a href="/dashboard.php">
-            Dashboard
+        <div class="nav-title">
+            Main Menu
+        </div>
+
+
+        <a
+            href="/dashboard.php"
+            class="nav-link"
+        >
+            <span class="nav-icon">⌂</span>
+            <span>Dashboard</span>
         </a>
 
-        <a href="/departments.php">
-            Departments
+
+        <a
+            href="/departments.php"
+            class="nav-link"
+        >
+            <span class="nav-icon">▦</span>
+            <span>Departments</span>
         </a>
 
-        <a href="/credentials.php">
-            Credentials
+
+        <a
+            href="/credentials.php"
+            class="nav-link active"
+        >
+            <span class="nav-icon">🔑</span>
+            <span>Credentials</span>
         </a>
+
+    </div>
+
+
+    <div class="nav-section">
+
+        <div class="nav-title">
+            Administration
+        </div>
 
 
         <?php if (canManageUsers()): ?>
 
-            <a href="/manage-users.php">
-                Manage Users
+            <a
+                href="/manage-users.php"
+                class="nav-link"
+            >
+                <span class="nav-icon">👥</span>
+                <span>Manage Users</span>
             </a>
 
         <?php endif; ?>
 
 
-        <a href="/logout.php">
-            Logout
+        <?php if (canManageDepartments()): ?>
+
+            <a
+                href="/manage-departments.php"
+                class="nav-link"
+            >
+                <span class="nav-icon">⚙</span>
+                <span>Manage Departments</span>
+            </a>
+
+        <?php endif; ?>
+
+
+        <?php if (isAdmin()): ?>
+
+            <a
+                href="/audit-logs.php"
+                class="nav-link"
+            >
+                <span class="nav-icon">◷</span>
+                <span>Audit Logs</span>
+            </a>
+
+        <?php endif; ?>
+
+
+        <?php if (
+            function_exists('canManageRoot')
+            &&
+            canManageRoot()
+        ): ?>
+
+            <a
+                href="/root-management.php"
+                class="nav-link"
+            >
+                <span class="nav-icon">♛</span>
+                <span>Root Management</span>
+            </a>
+
+        <?php endif; ?>
+
+    </div>
+
+
+    <div class="nav-section">
+
+        <a
+            href="/logout.php"
+            class="nav-link"
+        >
+            <span class="nav-icon">↪</span>
+            <span>Logout</span>
         </a>
 
     </div>
 
-</div>
+</aside>
 
 
-<!-- Main Container -->
+<!--
+|--------------------------------------------------------------------------
+| Main
+|--------------------------------------------------------------------------
+-->
 
-<div class="container">
+<main class="main">
 
 
-<div class="header">
+    <!-- Topbar -->
+
+    <header class="topbar">
 
 
-<div>
+        <div class="topbar-title">
 
-    <h1>
+            <h1>
+                Credentials
+            </h1>
 
-        <?php if ($employee): ?>
+            <p>
+                Securely manage and access employee credentials
+            </p>
 
-            Credentials
+        </div>
 
-        <?php else: ?>
 
-            All Credentials
+        <div class="topbar-right">
+
+
+            <form
+                class="top-search"
+                method="GET"
+                action="/search.php"
+            >
+
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search credentials..."
+                    autocomplete="off"
+                >
+
+            </form>
+
+
+            <div class="user-pill">
+
+                <div class="avatar">
+
+                    <?php
+                    echo strtoupper(
+                        substr(
+                            (string) (
+                                $_SESSION['full_name']
+                                ??
+                                $_SESSION['username']
+                                ??
+                                'U'
+                            ),
+                            0,
+                            1
+                        )
+                    );
+                    ?>
+
+                </div>
+
+
+                <div class="user-info">
+
+                    <div class="user-name">
+
+                        <?php
+                        echo htmlspecialchars(
+                            (string) (
+                                $_SESSION['full_name']
+                                ??
+                                $_SESSION['username']
+                                ??
+                                'User'
+                            ),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
+
+                    </div>
+
+                    <div class="user-role">
+
+                        <?php
+                        echo htmlspecialchars(
+                            (string) (
+                                $_SESSION['role']
+                                ?? 'user'
+                            ),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <section class="content">
+
+
+        <!-- Page heading -->
+
+        <div class="page-heading">
+
+
+            <div class="heading-left">
+
+                <h2>
+
+                    <?php if ($employee): ?>
+
+                        Employee Credentials
+
+                    <?php else: ?>
+
+                        All Credentials
+
+                    <?php endif; ?>
+
+                </h2>
+
+
+                <p>
+
+                    View and securely manage stored credentials.
+
+                </p>
+
+            </div>
+
+
+            <div class="header-actions">
+
+
+                <?php if ($employee): ?>
+
+                    <a
+                        href="/employees.php?department_id=<?php echo (int) $employee['department_id']; ?>"
+                        class="button"
+                    >
+                        ← Back to Employees
+                    </a>
+
+                <?php endif; ?>
+
+
+                <?php if (
+                    canAddCredentials()
+                    &&
+                    $employeeId > 0
+                ): ?>
+
+                    <a
+                        href="/add-credential.php?employee_id=<?php echo (int) $employeeId; ?>"
+                        class="add-button"
+                    >
+                        + Add Credential
+                    </a>
+
+                <?php endif; ?>
+
+            </div>
+
+        </div>
+
+
+        <!-- Messages -->
+
+
+        <?php if ($accessDenied): ?>
+
+            <div class="message warning">
+                ⚠️
+                <span>
+                    Access denied. You do not have permission to perform that action.
+                </span>
+            </div>
 
         <?php endif; ?>
 
-    </h1>
 
-</div>
+        <?php if ($added): ?>
 
+            <div class="message success">
+                ✓
+                <span>
+                    Credential added successfully.
+                </span>
+            </div>
 
-<div class="header-actions">
+        <?php endif; ?>
 
 
-<?php if ($employee): ?>
+        <?php if ($updated): ?>
 
-    <a
-        href="/employees.php?department_id=<?php echo (int) $employee['department_id']; ?>"
-        class="button"
-    >
-        ← Back to Employees
-    </a>
+            <div class="message success">
+                ✓
+                <span>
+                    Credential updated successfully.
+                </span>
+            </div>
 
-<?php endif; ?>
+        <?php endif; ?>
 
 
-<?php if (
-    canAddCredentials()
-    &&
-    $employeeId > 0
-): ?>
+        <?php if ($deleted): ?>
 
-    <a
-        href="/add-credential.php?employee_id=<?php echo (int) $employeeId; ?>"
-        class="add-button"
-    >
-        + Add Credential
-    </a>
+            <div class="message success">
+                ✓
+                <span>
+                    Credential deleted successfully.
+                </span>
+            </div>
 
-<?php endif; ?>
+        <?php endif; ?>
 
 
-</div>
+        <!-- Employee information -->
 
-</div>
 
+        <?php if ($employee): ?>
 
-<!-- Employee Information -->
+            <div class="employee-card">
 
-<?php if ($employee): ?>
+                <h3>
 
-<div class="employee-info">
+                    <?php
+                    echo htmlspecialchars(
+                        (string) $employee['employee_name'],
+                        ENT_QUOTES,
+                        'UTF-8'
+                    );
+                    ?>
 
-    <h3>
+                </h3>
 
-        Employee:
 
-        <?php
-        echo htmlspecialchars(
-            $employee['employee_name']
-        );
-        ?>
+                <div class="employee-details">
 
-    </h3>
 
+                    <?php if (!empty($employee['employee_id'])): ?>
 
-    <?php if (!empty($employee['employee_id'])): ?>
+                        <div class="employee-detail">
 
-        <p>
+                            <strong>
+                                Employee ID:
+                            </strong>
 
-            <strong>
-                Employee ID:
-            </strong>
+                            <?php
+                            echo htmlspecialchars(
+                                (string) $employee['employee_id'],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
+                            ?>
 
-            <?php
-            echo htmlspecialchars(
-                $employee['employee_id']
-            );
-            ?>
+                        </div>
 
-        </p>
+                    <?php endif; ?>
 
-    <?php endif; ?>
 
+                    <div class="employee-detail">
 
-    <p>
+                        <strong>
+                            Department:
+                        </strong>
 
-        <strong>
-            Department:
-        </strong>
+                        <?php
+                        echo htmlspecialchars(
+                            (string) (
+                                $employee['department_name']
+                                ??
+                                'Unknown'
+                            ),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
 
-        <?php
-        echo htmlspecialchars(
-            $employee['department_name']
-        );
-        ?>
+                    </div>
 
-    </p>
 
-</div>
+                    <div class="employee-detail">
 
-<?php endif; ?>
+                        <strong>
+                            Credentials:
+                        </strong>
 
+                        <?php echo count($credentials); ?>
 
-<!-- Messages -->
+                    </div>
 
-<?php if ($accessDenied): ?>
+                </div>
 
-<div class="access-denied">
+            </div>
 
-    Access denied. You do not have permission to perform that action.
+        <?php endif; ?>
 
-</div>
 
-<?php endif; ?>
+        <!-- Search -->
 
 
-<?php if ($added): ?>
+        <?php if (!empty($credentials)): ?>
 
-<div class="success">
+            <div class="search-card">
 
-    Credential added successfully.
 
-</div>
+                <div class="search-top">
 
-<?php endif; ?>
+                    <div class="search-label">
+                        Search Credentials
+                    </div>
 
+                    <div class="search-hint">
+                        Service name • Employee name • Employee ID
+                    </div>
 
-<?php if ($updated): ?>
+                </div>
 
-<div class="success">
 
-    Credential updated successfully.
+                <div class="search-row">
 
-</div>
+                    <input
+                        type="text"
+                        id="credentialSearch"
+                        class="search-input"
+                        placeholder="Search service, employee, or employee ID..."
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
 
-<?php endif; ?>
 
+                    <button
+                        type="button"
+                        id="clearSearch"
+                        class="clear-search"
+                    >
+                        Clear
+                    </button>
 
-<?php if ($deleted): ?>
+                </div>
 
-<div class="success">
 
-    Credential deleted successfully.
+                <div
+                    id="searchResultCount"
+                    class="search-result-count"
+                >
+                    Showing
+                    <?php echo count($credentials); ?>
+                    credential<?php
+                        echo count($credentials) === 1
+                            ? ''
+                            : 's';
+                    ?>.
+                </div>
 
-</div>
+            </div>
 
-<?php endif; ?>
+        <?php endif; ?>
 
 
-<!-- Credentials -->
+        <!-- Credentials -->
 
-<?php if (empty($credentials)): ?>
 
+        <?php if (empty($credentials)): ?>
 
-<div class="empty">
 
-    <h3>
-        No credentials found.
-    </h3>
+            <div class="empty">
 
 
-    <?php if (
-        canAddCredentials()
-        &&
-        $employeeId > 0
-    ): ?>
+                <div class="empty-icon">
+                    🔑
+                </div>
 
-        <p>
 
-            <a
-                href="/add-credential.php?employee_id=<?php echo (int) $employeeId; ?>"
-                class="add-button"
-            >
-                + Add First Credential
-            </a>
+                <h3>
+                    No credentials found
+                </h3>
 
-        </p>
 
-    <?php endif; ?>
+                <p>
+                    There are currently no credentials available for this employee.
+                </p>
 
 
-</div>
+                <?php if (
+                    canAddCredentials()
+                    &&
+                    $employeeId > 0
+                ): ?>
 
+                    <a
+                        href="/add-credential.php?employee_id=<?php echo (int) $employeeId; ?>"
+                        class="add-button"
+                    >
+                        + Add First Credential
+                    </a>
 
-<?php else: ?>
+                <?php endif; ?>
 
 
-<div class="table-wrapper">
+            </div>
 
 
-<table>
+        <?php else: ?>
 
 
-<thead>
+            <div class="table-card">
 
-<tr>
 
-    <th>
-        Service
-    </th>
+                <div class="table-header">
 
+                    <div>
 
-    <?php if ($employeeId === 0): ?>
+                        <div class="table-title">
+                            Stored Credentials
+                        </div>
 
-        <th>
-            Employee
-        </th>
+                        <div class="table-subtitle">
+                            Passwords remain hidden until explicitly revealed.
+                        </div>
 
-        <th>
-            Department
-        </th>
+                    </div>
 
-    <?php endif; ?>
+                </div>
 
 
-    <th>
-        Username
-    </th>
+                <div class="table-wrapper">
 
-    <th>
-        Password
-    </th>
 
-    <th>
-        URL
-    </th>
+                    <table id="credentialsTable">
 
-    <th>
-        Notes
-    </th>
 
-    <th>
-        Created By
-    </th>
+                        <thead>
 
-    <th>
-        Created
-    </th>
+                            <tr>
 
-    <th>
-        Actions
-    </th>
+                                <th>
+                                    Service
+                                </th>
 
-</tr>
 
-</thead>
+                                <?php if ($employeeId === 0): ?>
 
+                                    <th>
+                                        Employee
+                                    </th>
 
-<tbody>
+                                    <th>
+                                        Department
+                                    </th>
 
+                                <?php endif; ?>
 
-<?php foreach ($credentials as $credential): ?>
 
+                                <th>
+                                    Username
+                                </th>
 
-<tr>
 
+                                <th>
+                                    Password
+                                </th>
 
-<!-- Service -->
 
-<td>
+                                <th>
+                                    URL
+                                </th>
 
-    <strong>
 
-        <?php
-        echo htmlspecialchars(
-            $credential['service_name']
-        );
-        ?>
+                                <th>
+                                    Notes
+                                </th>
 
-    </strong>
 
+                                <th>
+                                    Created By
+                                </th>
 
-    <?php if (
-        !empty($credential['is_new_version'])
-    ): ?>
 
-        <div class="version-comment">
+                                <th>
+                                    Created
+                                </th>
 
-            New Password Version
 
-        </div>
+                                <th>
+                                    Actions
+                                </th>
 
-    <?php endif; ?>
+                            </tr>
 
+                        </thead>
 
-    <?php if (
-        !empty($credential['change_comment'])
-    ): ?>
 
-        <div class="version-comment">
+                        <tbody>
 
-            <?php
-            echo htmlspecialchars(
-                $credential['change_comment']
-            );
-            ?>
 
-        </div>
+                            <?php foreach ($credentials as $credential): ?>
 
-    <?php endif; ?>
 
-</td>
+                                <?php
 
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Searchable Text
+                                |--------------------------------------------------------------------------
+                                |
+                                | ONLY:
+                                |
+                                | Service Name
+                                | Employee Name
+                                | Employee ID
+                                |
+                                */
 
-<!-- Employee -->
+                                $searchText = implode(
+                                    ' ',
+                                    [
+                                        $credential['service_name'] ?? '',
+                                        $credential['employee_name'] ?? '',
+                                        $credential['employee_code'] ?? ''
+                                    ]
+                                );
 
-<?php if ($employeeId === 0): ?>
+                                ?>
 
-<td>
 
-    <?php
-    echo htmlspecialchars(
-        $credential['employee_name']
-        ?? 'Unknown'
-    );
-    ?>
+                                <tr
+                                    data-search="<?php
+                                        echo htmlspecialchars(
+                                            strtolower($searchText),
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+                                    ?>"
+                                >
 
 
-    <?php if (
-        !empty(
-            $credential['employee_code']
-        )
-    ): ?>
+                                    <!-- Service -->
 
-        <br>
+                                    <td>
 
-        <small>
+                                        <div class="service-name">
 
-            <?php
-            echo htmlspecialchars(
-                $credential['employee_code']
-            );
-            ?>
 
-        </small>
+                                            <div class="service-icon">
+                                                🔑
+                                            </div>
 
-    <?php endif; ?>
 
-</td>
+                                            <div>
 
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    (string)
+                                                    $credential['service_name'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
 
-<!-- Department -->
 
-<td>
+                                                <?php if (
+                                                    !empty(
+                                                        $credential['is_new_version']
+                                                    )
+                                                ): ?>
 
-    <?php
-    echo htmlspecialchars(
-        $credential['department_name']
-        ?? 'Unknown'
-    );
-    ?>
+                                                    <div class="version-comment">
+                                                        New Password Version
+                                                    </div>
 
-</td>
+                                                <?php endif; ?>
 
-<?php endif; ?>
 
+                                                <?php if (
+                                                    !empty(
+                                                        $credential['change_comment']
+                                                    )
+                                                ): ?>
 
-<!-- Username -->
+                                                    <div class="change-comment">
 
-<td>
+                                                        <?php
+                                                        echo htmlspecialchars(
+                                                            (string)
+                                                            $credential['change_comment'],
+                                                            ENT_QUOTES,
+                                                            'UTF-8'
+                                                        );
+                                                        ?>
 
-    <?php
-    echo htmlspecialchars(
-        $credential[
-            'credential_username'
-        ]
-        ?? ''
-    );
-    ?>
+                                                    </div>
 
-</td>
+                                                <?php endif; ?>
 
+                                            </div>
 
-<!-- Password -->
+                                        </div>
 
-<td class="password-field">
+                                    </td>
 
 
-<div class="password-actions">
+                                    <!-- Employee -->
 
 
-<span
-    class="password"
-    data-credential-id="<?php echo (int) $credential['id']; ?>"
-    data-visible="0"
->
-    ••••••••
-</span>
+                                    <?php if ($employeeId === 0): ?>
 
 
-<button
-    type="button"
-    class="toggle-button"
-    onclick="togglePassword(this)"
->
-    Show
-</button>
+                                        <td>
 
+                                            <div class="employee-name">
 
-</div>
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    (string) (
+                                                        $credential['employee_name']
+                                                        ??
+                                                        'Unknown'
+                                                    ),
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
 
+                                            </div>
 
-</td>
 
+                                            <?php if (
+                                                !empty(
+                                                    $credential['employee_code']
+                                                )
+                                            ): ?>
 
-<!-- URL -->
+                                                <div class="employee-id">
 
-<td>
+                                                    ID:
 
-<?php if (
-    !empty(
-        $credential['service_url']
-    )
-): ?>
+                                                    <?php
+                                                    echo htmlspecialchars(
+                                                        (string)
+                                                        $credential['employee_code'],
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                    ?>
 
-    <a
-        class="url-link"
-        href="<?php echo htmlspecialchars(
-            $credential[
-                'service_url'
-            ],
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>"
-        target="_blank"
-        rel="noopener noreferrer"
-    >
-        Open
-    </a>
+                                                </div>
 
-<?php else: ?>
+                                            <?php endif; ?>
 
-    —
+                                        </td>
 
-<?php endif; ?>
 
-</td>
+                                        <!-- Department -->
 
 
-<!-- Notes -->
+                                        <td>
 
-<td>
+                                            <span class="department-badge">
 
-    <?php
-    echo htmlspecialchars(
-        $credential['notes']
-        ?? ''
-    );
-    ?>
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    (string) (
+                                                        $credential['department_name']
+                                                        ??
+                                                        'Unknown'
+                                                    ),
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
 
-</td>
+                                            </span>
 
+                                        </td>
 
-<!-- Created By -->
 
-<td>
+                                    <?php endif; ?>
 
-    <?php
-    echo htmlspecialchars(
-        $credential[
-            'created_by_name'
-        ]
-        ?? 'Unknown'
-    );
-    ?>
 
-</td>
+                                    <!-- Username -->
 
 
-<!-- Created -->
+                                    <td>
 
-<td>
+                                        <span class="username">
 
-    <?php
-    echo htmlspecialchars(
-        $credential['created_at']
-    );
-    ?>
+                                            <?php
+                                            echo htmlspecialchars(
+                                                (string) (
+                                                    $credential['credential_username']
+                                                    ??
+                                                    ''
+                                                ),
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            );
+                                            ?>
 
-</td>
+                                        </span>
 
+                                    </td>
 
-<!-- Actions -->
 
-<td>
+                                    <!-- Password -->
 
 
-<div class="actions">
+                                    <td class="password-field">
 
 
-<?php if (canEditCredentials()): ?>
+                                        <div class="password-actions">
 
-    <a
-        class="button"
-        href="/edit-credential.php?id=<?php echo (int) $credential['id']; ?>"
-    >
-        Edit
-    </a>
 
-<?php endif; ?>
+                                            <span
+                                                class="password"
+                                                data-credential-id="<?php
+                                                    echo (int)
+                                                        $credential['id'];
+                                                ?>"
+                                                data-visible="0"
+                                                aria-label="Password hidden"
+                                            >
+                                                ••••••••
+                                            </span>
 
 
-<?php if (canEditCredentials()): ?>
+                                            <button
+                                                type="button"
+                                                class="toggle-button"
+                                                onclick="togglePassword(this)"
+                                            >
+                                                Show
+                                            </button>
 
-    <a
-        class="button"
-        href="/add-password-version.php?id=<?php echo (int) $credential['id']; ?>"
-    >
-        + New Password
-    </a>
 
-<?php endif; ?>
+                                        </div>
 
 
-<?php if (canDeleteCredentials()): ?>
+                                    </td>
 
-    <form
-        method="POST"
-        action="/delete-credential.php"
-        onsubmit="return confirm('Are you sure you want to delete this credential?');"
-    >
 
-        <input
-            type="hidden"
-            name="id"
-            value="<?php echo (int) $credential['id']; ?>"
-        >
+                                    <!-- URL -->
 
 
-        <input
-            type="hidden"
-            name="csrf_token"
-            value="<?php echo htmlspecialchars(
-                csrfToken(),
-                ENT_QUOTES,
-                'UTF-8'
-            ); ?>"
-        >
+                                    <td>
 
 
-        <button
-            type="submit"
-            class="delete-button"
-        >
-            Delete
-        </button>
+                                        <?php if (
+                                            !empty(
+                                                $credential['service_url']
+                                            )
+                                        ): ?>
 
-    </form>
 
-<?php endif; ?>
+                                            <a
+                                                class="url-link"
+                                                href="<?php
+                                                    echo htmlspecialchars(
+                                                        (string)
+                                                        $credential['service_url'],
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                ?>"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                ↗ Open
+                                            </a>
 
 
-<?php if (hasRole('viewer')): ?>
+                                        <?php else: ?>
 
-    <span>
-        View Only
-    </span>
+                                            —
 
-<?php endif; ?>
+                                        <?php endif; ?>
 
 
-</div>
+                                    </td>
 
 
-</td>
+                                    <!-- Notes -->
 
 
-</tr>
+                                    <td class="notes-cell">
 
+                                        <?php
+                                        echo htmlspecialchars(
+                                            (string) (
+                                                $credential['notes']
+                                                ??
+                                                ''
+                                            ),
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+                                        ?>
 
-<?php endforeach; ?>
+                                    </td>
 
 
-</tbody>
+                                    <!-- Created By -->
 
 
-</table>
+                                    <td>
 
+                                        <div class="created-by">
 
-</div>
+                                            <?php
+                                            echo htmlspecialchars(
+                                                (string) (
+                                                    $credential['created_by_name']
+                                                    ??
+                                                    'Unknown'
+                                                ),
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            );
+                                            ?>
 
+                                        </div>
 
-<?php endif; ?>
 
+                                        <?php if (
+                                            !empty(
+                                                $credential['created_by_role']
+                                            )
+                                        ): ?>
 
-</div>
+                                            <span class="created-role">
+
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    (string)
+                                                    $credential['created_by_role'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
+
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+
+                                    <!-- Created -->
+
+
+                                    <td>
+
+                                        <span class="created-date">
+
+                                            <?php
+                                            echo htmlspecialchars(
+                                                (string)
+                                                $credential['created_at'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            );
+                                            ?>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Actions -->
+
+
+                                    <td>
+
+                                        <div class="actions">
+
+
+                                            <?php if (
+                                                canEditCredentials()
+                                            ): ?>
+
+
+                                                <a
+                                                    class="button"
+                                                    href="/edit-credential.php?id=<?php
+                                                        echo (int)
+                                                            $credential['id'];
+                                                    ?>"
+                                                >
+                                                    Edit
+                                                </a>
+
+
+                                                <a
+                                                    class="button"
+                                                    href="/add-password-version.php?id=<?php
+                                                        echo (int)
+                                                            $credential['id'];
+                                                    ?>"
+                                                >
+                                                    + New Password
+                                                </a>
+
+
+                                            <?php endif; ?>
+
+
+                                            <?php if (
+                                                canDeleteCredentials()
+                                            ): ?>
+
+
+                                                <form
+                                                    method="POST"
+                                                    action="/delete-credential.php"
+                                                    onsubmit="return confirm('Are you sure you want to delete this credential?');"
+                                                >
+
+
+                                                    <input
+                                                        type="hidden"
+                                                        name="id"
+                                                        value="<?php
+                                                            echo (int)
+                                                                $credential['id'];
+                                                        ?>"
+                                                    >
+
+
+                                                    <input
+                                                        type="hidden"
+                                                        name="csrf_token"
+                                                        value="<?php
+                                                            echo htmlspecialchars(
+                                                                csrfToken(),
+                                                                ENT_QUOTES,
+                                                                'UTF-8'
+                                                            );
+                                                        ?>"
+                                                    >
+
+
+                                                    <button
+                                                        type="submit"
+                                                        class="delete-button"
+                                                    >
+                                                        Delete
+                                                    </button>
+
+
+                                                </form>
+
+
+                                            <?php endif; ?>
+
+
+                                            <?php if (
+                                                hasRole('viewer')
+                                            ): ?>
+
+                                                <span class="viewer-badge">
+                                                    View Only
+                                                </span>
+
+                                            <?php endif; ?>
+
+
+                                        </div>
+
+                                    </td>
+
+
+                                </tr>
+
+
+                            <?php endforeach; ?>
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+                <div
+                    id="noSearchResults"
+                    class="no-search-results"
+                >
+
+                    <strong>
+                        No credentials match your search.
+                    </strong>
+
+                    <br><br>
+
+                    Search using
+                    <strong>Service Name</strong>,
+                    <strong>Employee Name</strong>,
+                    or
+                    <strong>Employee ID</strong>.
+
+                </div>
+
+
+            </div>
+
+
+        <?php endif; ?>
+
+
+    </section>
+
+
+</main>
 
 
 <script>
 
+
+/*
+|--------------------------------------------------------------------------
+| Password Retrieval
+|--------------------------------------------------------------------------
+|
+| Password is NOT loaded when credentials.php loads.
+|
+| It is requested only after the user explicitly clicks Show.
+|
+| There is NO clipboard functionality.
+|
+*/
+
 async function fetchCredentialPassword(id) {
 
     const response = await fetch(
-        'show-password.php?id=' +
+        '/show-password.php?id=' +
         encodeURIComponent(id),
         {
+            method: 'GET',
+
             credentials: 'same-origin',
+
+            cache: 'no-store',
+
             headers: {
                 'Accept': 'application/json'
             }
         }
     );
 
-    const data = await response.json();
 
-    if (!response.ok || !data.success) {
+    let data;
+
+
+    try {
+
+        data = await response.json();
+
+    } catch (error) {
+
+        throw new Error(
+            'Unable to access password.'
+        );
+
+    }
+
+
+    if (
+        !response.ok ||
+        !data.success
+    ) {
 
         throw new Error(
             data.message ||
@@ -1486,51 +3410,123 @@ async function fetchCredentialPassword(id) {
 
     }
 
+
     return data.password;
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Hide Password
+|--------------------------------------------------------------------------
+*/
+
+function hidePassword(
+    passwordSpan,
+    button
+) {
+
+    passwordSpan.textContent =
+        '••••••••';
+
+    passwordSpan.dataset.visible =
+        '0';
+
+    passwordSpan.classList.remove(
+        'visible'
+    );
+
+    passwordSpan.setAttribute(
+        'aria-label',
+        'Password hidden'
+    );
+
+
+    if (button) {
+
+        button.textContent =
+            'Show';
+
+    }
+
+
+    if (
+        passwordSpan._hideTimer
+    ) {
+
+        clearTimeout(
+            passwordSpan._hideTimer
+        );
+
+        passwordSpan._hideTimer =
+            null;
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Show / Hide Password
+|--------------------------------------------------------------------------
+*/
+
 function togglePassword(button) {
 
     const passwordField =
-        button.closest('.password-field');
+        button.closest(
+            '.password-field'
+        );
+
+
+    if (!passwordField) {
+        return;
+    }
+
 
     const passwordSpan =
-        passwordField.querySelector('.password');
+        passwordField.querySelector(
+            '.password'
+        );
+
+
+    if (!passwordSpan) {
+        return;
+    }
+
 
     const id =
         passwordSpan.dataset.credentialId;
 
 
+    if (!id) {
+        return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hide Existing Password
+    |--------------------------------------------------------------------------
+    */
+
     if (
         passwordSpan.dataset.visible === '1'
     ) {
 
-        passwordSpan.textContent =
-            '••••••••';
-
-        passwordSpan.dataset.visible =
-            '0';
-
-        button.textContent =
-            'Show';
-
-
-        if (passwordSpan._hideTimer) {
-
-            clearTimeout(
-                passwordSpan._hideTimer
-            );
-
-            passwordSpan._hideTimer =
-                null;
-
-        }
+        hidePassword(
+            passwordSpan,
+            button
+        );
 
         return;
-
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retrieve Password
+    |--------------------------------------------------------------------------
+    */
 
     button.disabled =
         true;
@@ -1543,43 +3539,73 @@ function togglePassword(button) {
 
         .then(function(password) {
 
+
             passwordSpan.textContent =
                 password;
 
             passwordSpan.dataset.visible =
                 '1';
 
+            passwordSpan.classList.add(
+                'visible'
+            );
+
+            passwordSpan.setAttribute(
+                'aria-label',
+                'Password visible'
+            );
+
+
             button.textContent =
                 'Hide';
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Automatically Hide After 30 Seconds
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                passwordSpan._hideTimer
+            ) {
+
+                clearTimeout(
+                    passwordSpan._hideTimer
+                );
+
+            }
+
+
             passwordSpan._hideTimer =
-                setTimeout(function() {
+                setTimeout(
+                    function() {
 
-                    passwordSpan.textContent =
-                        '••••••••';
+                        hidePassword(
+                            passwordSpan,
+                            button
+                        );
 
-                    passwordSpan.dataset.visible =
-                        '0';
-
-                    button.textContent =
-                        'Show';
-
-                    passwordSpan._hideTimer =
-                        null;
-
-                }, 30000);
+                    },
+                    30000
+                );
 
         })
 
+
         .catch(function(error) {
 
-            alert(error.message);
+            alert(
+                error.message ||
+                'Unable to access password.'
+            );
+
 
             button.textContent =
                 'Show';
 
         })
+
 
         .finally(function() {
 
@@ -1590,8 +3616,277 @@ function togglePassword(button) {
 
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Credential Search
+|--------------------------------------------------------------------------
+|
+| ONLY:
+|
+| - Service Name
+| - Employee Name
+| - Employee ID
+|
+*/
+
+(function() {
+
+
+    const searchInput =
+        document.getElementById(
+            'credentialSearch'
+        );
+
+
+    const clearButton =
+        document.getElementById(
+            'clearSearch'
+        );
+
+
+    const table =
+        document.getElementById(
+            'credentialsTable'
+        );
+
+
+    const resultCount =
+        document.getElementById(
+            'searchResultCount'
+        );
+
+
+    const noResults =
+        document.getElementById(
+            'noSearchResults'
+        );
+
+
+    if (
+        !searchInput ||
+        !table
+    ) {
+
+        return;
+    }
+
+
+    const rows =
+        Array.from(
+            table.querySelectorAll(
+                'tbody tr'
+            )
+        );
+
+
+    const total =
+        rows.length;
+
+
+    function performSearch() {
+
+
+        const query =
+            searchInput.value
+                .trim()
+                .toLowerCase();
+
+
+        let visibleCount =
+            0;
+
+
+        rows.forEach(
+            function(row) {
+
+
+                const searchableText =
+                    (
+                        row.dataset.search ||
+                        ''
+                    ).toLowerCase();
+
+
+                const matches =
+                    query === '' ||
+                    searchableText.includes(
+                        query
+                    );
+
+
+                if (matches) {
+
+                    row.classList.remove(
+                        'search-hidden'
+                    );
+
+                    visibleCount++;
+
+                } else {
+
+                    row.classList.add(
+                        'search-hidden'
+                    );
+
+                }
+
+            }
+        );
+
+
+        if (
+            resultCount
+        ) {
+
+            if (
+                query === ''
+            ) {
+
+                resultCount.textContent =
+                    'Showing ' +
+                    total +
+                    ' credential' +
+                    (
+                        total === 1
+                            ? ''
+                            : 's'
+                    ) +
+                    '.';
+
+            } else {
+
+                resultCount.textContent =
+                    'Showing ' +
+                    visibleCount +
+                    ' of ' +
+                    total +
+                    ' credential' +
+                    (
+                        total === 1
+                            ? ''
+                            : 's'
+                    ) +
+                    '.';
+            }
+
+        }
+
+
+        if (
+            noResults
+        ) {
+
+            noResults.style.display =
+                (
+                    query !== '' &&
+                    visibleCount === 0
+                )
+                    ? 'block'
+                    : 'none';
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search While Typing
+    |--------------------------------------------------------------------------
+    */
+
+    searchInput.addEventListener(
+        'input',
+        performSearch
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Clear Search
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        clearButton
+    ) {
+
+        clearButton.addEventListener(
+            'click',
+            function() {
+
+                searchInput.value =
+                    '';
+
+                performSearch();
+
+                searchInput.focus();
+
+            }
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Escape = Clear
+    |--------------------------------------------------------------------------
+    */
+
+    searchInput.addEventListener(
+        'keydown',
+        function(event) {
+
+            if (
+                event.key === 'Escape'
+            ) {
+
+                searchInput.value =
+                    '';
+
+                performSearch();
+
+            }
+
+        }
+    );
+
+
+    performSearch();
+
+})();
+
+
+/*
+|--------------------------------------------------------------------------
+| Prevent accidental password selection
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener(
+    'dblclick',
+    function(event) {
+
+        if (
+            event.target.classList.contains(
+                'password'
+            )
+        ) {
+
+            event.preventDefault();
+
+        }
+
+    }
+);
+
+
 </script>
 
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

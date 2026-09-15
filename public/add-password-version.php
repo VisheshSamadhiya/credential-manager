@@ -499,6 +499,8 @@ textarea {
 
 </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 
@@ -700,6 +702,8 @@ togglePassword.addEventListener('click', function () {
     );
 });
 </script>
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

@@ -276,6 +276,8 @@ tr:hover {
 
 </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 <body>
@@ -734,6 +736,8 @@ tr:hover {
     </div>
 
 </div>
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,453 @@
+/* =========================================================
+   CREDENTIAL MANAGER
+   GLOBAL LIGHT / DARK THEME
+   ========================================================= */
+
+html {
+    color-scheme: light;
+}
+
+html.dark-theme {
+    color-scheme: dark;
+}
+
+html,
+body {
+    transition:
+        background-color 0.25s ease,
+        color 0.25s ease;
+}
+
+
+/* =========================================================
+   DARK BODY
+   ========================================================= */
+
+html.dark-theme body {
+    background:
+        linear-gradient(
+            135deg,
+            #120d1f 0%,
+            #181025 50%,
+            #1b0d18 100%
+        ) !important;
+
+    color: #f3f4f6 !important;
+}
+
+
+/* =========================================================
+   HEADINGS
+   ========================================================= */
+
+html.dark-theme h1,
+html.dark-theme h2,
+html.dark-theme h3,
+html.dark-theme h4,
+html.dark-theme h5,
+html.dark-theme h6 {
+    color: #f5f3ff !important;
+}
+
+
+/* =========================================================
+   COMMON TEXT
+   ========================================================= */
+
+html.dark-theme p,
+html.dark-theme label {
+    color: #d1d5db;
+}
+
+
+/* =========================================================
+   COMMON CARDS
+   ========================================================= */
+
+html.dark-theme .card,
+html.dark-theme .employee-card,
+html.dark-theme .department-card,
+html.dark-theme .credential-card,
+html.dark-theme .user-card,
+html.dark-theme .panel,
+html.dark-theme .box,
+html.dark-theme .empty,
+html.dark-theme .empty-state,
+html.dark-theme .stat-card,
+html.dark-theme .table-container,
+html.dark-theme .content-card,
+html.dark-theme .form-card,
+html.dark-theme .audit-card {
+    background:
+        linear-gradient(
+            145deg,
+            #211631,
+            #26152f
+        ) !important;
+
+    border-color: #4c1d62 !important;
+
+    color: #f5f3ff !important;
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.30) !important;
+}
+
+
+/* =========================================================
+   DEPARTMENT CARDS
+   ========================================================= */
+
+html.dark-theme .department-card {
+    background:
+        linear-gradient(
+            135deg,
+            #4c1d95,
+            #6b21a8
+        ) !important;
+
+    border-color: #7e22ce !important;
+
+    color: #ffffff !important;
+}
+
+html.dark-theme .department-card:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #f3e8ff,
+            #fce7f3
+        ) !important;
+
+    border-color: #d8b4fe !important;
+
+    color: #6d28d9 !important;
+
+    box-shadow:
+        0 16px 35px
+        rgba(168, 85, 247, 0.25) !important;
+}
+
+html.dark-theme .department-card:hover h2 {
+    color: #6d28d9 !important;
+}
+
+html.dark-theme .department-card:hover p {
+    color: #9333ea !important;
+}
+
+
+/* =========================================================
+   EMPLOYEE CARDS
+   ========================================================= */
+
+html.dark-theme .employee-card {
+    background:
+        linear-gradient(
+            135deg,
+            #4c1d95,
+            #6b21a8
+        ) !important;
+
+    border-color: #7e22ce !important;
+
+    color: #ffffff !important;
+}
+
+html.dark-theme .employee-card:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #f3e8ff,
+            #fce7f3
+        ) !important;
+
+    border-color: #d8b4fe !important;
+
+    color: #6d28d9 !important;
+
+    box-shadow:
+        0 16px 35px
+        rgba(168, 85, 247, 0.25) !important;
+}
+
+html.dark-theme .employee-card:hover h3 {
+    color: #6d28d9 !important;
+}
+
+html.dark-theme .employee-card:hover .employee-id {
+    color: #7e22ce !important;
+}
+
+html.dark-theme .employee-card:hover .employee-id strong {
+    color: #6d28d9 !important;
+}
+
+
+/* =========================================================
+   PAGE LABEL / DEPARTMENT BADGE
+   ========================================================= */
+
+html.dark-theme .page-label {
+    background: #3b176d !important;
+
+    color: #d8b4fe !important;
+
+    border: 1px solid #6d28d9 !important;
+}
+
+html.dark-theme .department-badge {
+    background: #3b176d !important;
+
+    color: #e9d5ff !important;
+
+    border-color: #6d28d9 !important;
+}
+
+html.dark-theme .department-badge:hover {
+    background: #f3e8ff !important;
+
+    color: #7e22ce !important;
+
+    border-color: #d8b4fe !important;
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+html.dark-theme table {
+    background: #211631 !important;
+
+    color: #f5f3ff !important;
+}
+
+html.dark-theme th {
+    background:
+        linear-gradient(
+            135deg,
+            #3b176d,
+            #581c87
+        ) !important;
+
+    color: #ffffff !important;
+
+    border-color: #4c1d62 !important;
+}
+
+html.dark-theme td {
+    background: #211631 !important;
+
+    color: #e9d5ff !important;
+
+    border-color: #3b2948 !important;
+}
+
+html.dark-theme tr:hover td {
+    background: #2d1b3d !important;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+html.dark-theme input,
+html.dark-theme select,
+html.dark-theme textarea {
+    background: #160f21 !important;
+
+    color: #f5f3ff !important;
+
+    border-color: #5b3470 !important;
+}
+
+html.dark-theme input::placeholder,
+html.dark-theme textarea::placeholder {
+    color: #9ca3af !important;
+}
+
+html.dark-theme input:focus,
+html.dark-theme select:focus,
+html.dark-theme textarea:focus {
+    border-color: #a855f7 !important;
+
+    outline: none !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(168, 85, 247, 0.18) !important;
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+html.dark-theme .back {
+    color: #c084fc !important;
+}
+
+html.dark-theme .back:hover {
+    color: #f472b6 !important;
+}
+
+
+/* =========================================================
+   COMMON WHITE ELEMENTS
+   ========================================================= */
+
+html.dark-theme .modal,
+html.dark-theme .dropdown,
+html.dark-theme .dropdown-menu,
+html.dark-theme .menu,
+html.dark-theme .search-results,
+html.dark-theme .search-container {
+    background: #211631 !important;
+
+    color: #f5f3ff !important;
+
+    border-color: #4c1d62 !important;
+}
+
+
+/* =========================================================
+   ALERTS
+   ========================================================= */
+
+html.dark-theme .success {
+    background: #052e24 !important;
+
+    color: #a7f3d0 !important;
+
+    border-color: #065f46 !important;
+}
+
+html.dark-theme .error {
+    background: #3b1018 !important;
+
+    color: #fecdd3 !important;
+
+    border-color: #881337 !important;
+}
+
+
+/* =========================================================
+   CODE
+   ========================================================= */
+
+html.dark-theme code,
+html.dark-theme pre {
+    background: #100b18 !important;
+
+    color: #e9d5ff !important;
+
+    border-color: #3b2948 !important;
+}
+
+
+/* =========================================================
+   HR
+   ========================================================= */
+
+html.dark-theme hr {
+    border-color: #3b2948 !important;
+}
+
+
+/* =========================================================
+   THEME SWITCH
+   ========================================================= */
+
+#global-theme-toggle {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    z-index: 99999;
+
+    width: 48px;
+    height: 48px;
+
+    border: 1px solid
+        rgba(255, 255, 255, 0.25);
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #db2777
+        );
+
+    color: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 20px;
+
+    box-shadow:
+        0 8px 25px
+        rgba(124, 58, 237, 0.35);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+#global-theme-toggle:hover {
+    transform:
+        translateY(-3px)
+        scale(1.05);
+
+    box-shadow:
+        0 12px 30px
+        rgba(219, 39, 119, 0.35);
+}
+
+#global-theme-toggle span {
+    display: block;
+
+    font-size: 22px;
+
+    line-height: 1;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    transition:
+        transform 0.25s ease;
+}
+
+#global-theme-toggle:hover span {
+    transform:
+        rotate(20deg);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    #global-theme-toggle {
+        right: 15px;
+        bottom: 15px;
+
+        width: 44px;
+        height: 44px;
+
+        font-size: 18px;
+    }
+
+}

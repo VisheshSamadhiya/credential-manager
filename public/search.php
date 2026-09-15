@@ -1,20 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
 requireLogin();
 
-
 /*
 |--------------------------------------------------------------------------
 | Search Query
 |--------------------------------------------------------------------------
+|
+| Search ONLY:
+|
+| 1. Employee ID
+| 2. Employee Name
+| 3. Service Name
+|
+| Nothing else is searched.
+|
 */
 
-$query = trim($_GET['q'] ?? '');
+$query = trim(
+    (string) ($_GET['q'] ?? '')
+);
 
 $results = [];
+
+$searchError = null;
 
 
 /*
@@ -25,85 +39,122 @@ $results = [];
 
 if ($query !== '') {
 
+    /*
+     * Normal substring search.
+     *
+     * Examples:
+     *
+     * "Vish"     -> Vishesh
+     * "304"      -> Employee ID 304
+     * "Gmail"    -> gmail
+     * "Chat"     -> Chat GPT
+     * "GPT"      -> Chat GPT
+     *
+     * Passwords are NEVER searched.
+     */
+
     $searchTerm = '%' . $query . '%';
 
 
     try {
 
         $stmt = $pdo->prepare(
-            "SELECT
-                credentials.id,
-                credentials.service_name,
-                credentials.service_url,
-                credentials.credential_username,
-                credentials.notes,
-                credentials.created_at,
+            "
+            SELECT
 
-                employees.employee_name,
+                c.id,
 
-                departments.department_name,
+                c.employee_id,
 
-                users.full_name AS created_by_name
+                c.service_name,
 
-            FROM credentials
+                c.service_url,
 
+                c.credential_username,
 
-            LEFT JOIN employees
+                c.notes,
 
-                ON credentials.employee_id = employees.id
+                c.created_at,
 
+                e.employee_name,
 
-            LEFT JOIN departments
+                e.employee_id AS employee_code,
 
-                ON employees.department_id = departments.id
+                d.department_name,
 
+                u.full_name AS created_by_name,
 
-            LEFT JOIN users
+                u.role AS created_by_role
 
-                ON credentials.created_by = users.id
+            FROM credentials c
 
+            LEFT JOIN employees e
+                ON c.employee_id = e.id
+
+            LEFT JOIN departments d
+                ON e.department_id = d.id
+
+            LEFT JOIN users u
+                ON c.created_by = u.id
 
             WHERE
 
-                credentials.service_name
-                    LIKE :search
+                /*
+                 * Service Name
+                 */
+                c.service_name LIKE :search_service
 
                 OR
 
-                credentials.credential_username
-                    LIKE :search
+                /*
+                 * Employee Name
+                 */
+                e.employee_name LIKE :search_employee
 
                 OR
 
-                credentials.notes
-                    LIKE :search
-
-                OR
-
-                employees.employee_name
-                    LIKE :search
-
-                OR
-
-                departments.department_name
-                    LIKE :search
-
+                /*
+                 * Employee ID
+                 */
+                CAST(e.employee_id AS CHAR) LIKE :search_employee_id
 
             ORDER BY
-                credentials.created_at DESC"
+                c.created_at DESC
+            "
         );
 
 
         $stmt->execute([
-            ':search' => $searchTerm
+
+            ':search_service' =>
+                $searchTerm,
+
+            ':search_employee' =>
+                $searchTerm,
+
+            ':search_employee_id' =>
+                $searchTerm
+
         ]);
 
 
         $results =
-            $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
 
 
     } catch (PDOException $e) {
+
+        error_log(
+            'Credential search failed: '
+            . $e->getMessage()
+        );
+
+
+        $searchError =
+            'Unable to perform the search right now.';
+
 
         $results = [];
 
@@ -118,21 +169,57 @@ if ($query !== '') {
 |--------------------------------------------------------------------------
 */
 
-$userId = $_SESSION['user_id'] ?? 0;
+$userId =
+    isset($_SESSION['user_id'])
+        ? (int) $_SESSION['user_id']
+        : 0;
 
-$stmt = $pdo->prepare(
-    "SELECT
-        full_name,
-        role
-    FROM users
-    WHERE id = :id"
-);
 
-$stmt->execute([
-    ':id' => $userId
-]);
+$user = [
+    'full_name' => '',
+    'role' => ''
+];
 
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+try {
+
+    $stmt = $pdo->prepare(
+        "
+        SELECT
+            full_name,
+            role
+        FROM users
+        WHERE id = :id
+        LIMIT 1
+        "
+    );
+
+
+    $stmt->execute([
+        ':id' => $userId
+    ]);
+
+
+    $currentUser =
+        $stmt->fetch(
+            PDO::FETCH_ASSOC
+        );
+
+
+    if ($currentUser) {
+
+        $user = $currentUser;
+
+    }
+
+} catch (PDOException $e) {
+
+    error_log(
+        'Current user lookup failed: '
+        . $e->getMessage()
+    );
+
+}
 
 ?>
 
@@ -149,7 +236,9 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     content="width=device-width, initial-scale=1"
 >
 
-<title>Search - Credential Manager</title>
+<title>
+    Search - Credential Manager
+</title>
 
 
 <style>
@@ -165,6 +254,7 @@ body {
 
     font-family:
         Arial,
+        Helvetica,
         sans-serif;
 
     background: #f5f7fb;
@@ -186,15 +276,15 @@ body {
 
     color: white;
 
-    padding:
-
-        18px 40px;
+    padding: 18px 40px;
 
     display: flex;
 
     justify-content: space-between;
 
     align-items: center;
+
+    gap: 20px;
 
 }
 
@@ -205,6 +295,8 @@ body {
 
     font-weight: bold;
 
+    white-space: nowrap;
+
 }
 
 
@@ -212,7 +304,11 @@ body {
 
     display: flex;
 
+    align-items: center;
+
     gap: 22px;
+
+    flex-wrap: wrap;
 
 }
 
@@ -235,7 +331,7 @@ body {
 
 /*
 |--------------------------------------------------------------------------
-| Main
+| Main Container
 |--------------------------------------------------------------------------
 */
 
@@ -243,20 +339,16 @@ body {
 
     max-width: 1200px;
 
-    margin:
+    margin: 40px auto;
 
-        40px auto;
-
-    padding:
-
-        0 25px;
+    padding: 0 25px;
 
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Search Box
+| Search Card
 |--------------------------------------------------------------------------
 */
 
@@ -271,7 +363,6 @@ body {
     margin-bottom: 30px;
 
     box-shadow:
-
         0 4px 15px
         rgba(
             0,
@@ -282,6 +373,30 @@ body {
 
 }
 
+
+.search-card h1 {
+
+    margin-top: 0;
+
+    margin-bottom: 12px;
+
+}
+
+
+.search-card p {
+
+    margin-top: 0;
+
+    color: #64748b;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Search Form
+|--------------------------------------------------------------------------
+*/
 
 .search-form {
 
@@ -296,10 +411,11 @@ body {
 
     flex: 1;
 
+    min-width: 0;
+
     padding: 15px;
 
     border:
-
         1px solid
         #dbe1ea;
 
@@ -316,6 +432,15 @@ body {
 
     border-color: #2563eb;
 
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            37,
+            99,
+            235,
+            0.10
+        );
+
 }
 
 
@@ -327,9 +452,7 @@ body {
 
     border: none;
 
-    padding:
-
-        0 25px;
+    padding: 0 25px;
 
     border-radius: 8px;
 
@@ -349,11 +472,43 @@ body {
 
 /*
 |--------------------------------------------------------------------------
+| Search Error
+|--------------------------------------------------------------------------
+*/
+
+.search-error {
+
+    background: #fee2e2;
+
+    color: #991b1b;
+
+    padding: 15px;
+
+    border-radius: 8px;
+
+    margin-bottom: 20px;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
 | Results
 |--------------------------------------------------------------------------
 */
 
 .results-title {
+
+    margin-bottom: 10px;
+
+}
+
+
+.result-summary {
+
+    color: #64748b;
+
+    font-size: 14px;
 
     margin-bottom: 20px;
 
@@ -371,11 +526,12 @@ body {
     margin-bottom: 15px;
 
     border:
-
         1px solid
         #edf0f5;
 
-    transition: 0.2s;
+    transition:
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
 
 }
 
@@ -383,7 +539,6 @@ body {
 .result-card:hover {
 
     box-shadow:
-
         0 6px 18px
         rgba(
             0,
@@ -391,6 +546,9 @@ body {
             0,
             0.08
         );
+
+    transform:
+        translateY(-1px);
 
 }
 
@@ -400,6 +558,8 @@ body {
     display: flex;
 
     justify-content: space-between;
+
+    align-items: flex-start;
 
     gap: 20px;
 
@@ -412,6 +572,8 @@ body {
 
     font-weight: 700;
 
+    word-break: break-word;
+
 }
 
 
@@ -419,9 +581,7 @@ body {
 
     display: inline-block;
 
-    padding:
-
-        5px 10px;
+    padding: 5px 10px;
 
     border-radius: 20px;
 
@@ -436,6 +596,23 @@ body {
 }
 
 
+.result-date {
+
+    color: #64748b;
+
+    font-size: 13px;
+
+    white-space: nowrap;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Result Information
+|--------------------------------------------------------------------------
+*/
+
 .result-info {
 
     margin-top: 18px;
@@ -443,10 +620,12 @@ body {
     display: grid;
 
     grid-template-columns:
-
         repeat(
             auto-fit,
-            minmax(180px, 1fr)
+            minmax(
+                180px,
+                1fr
+            )
         );
 
     gap: 15px;
@@ -469,8 +648,74 @@ body {
 
     font-weight: 500;
 
+    word-break: break-word;
+
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Notes
+|--------------------------------------------------------------------------
+*/
+
+.notes {
+
+    margin-top: 18px;
+
+    padding-top: 15px;
+
+    border-top:
+        1px solid
+        #edf0f5;
+
+}
+
+
+.notes-text {
+
+    color: #475569;
+
+    white-space: pre-wrap;
+
+    word-break: break-word;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| URL
+|--------------------------------------------------------------------------
+*/
+
+.url-link {
+
+    display: inline-block;
+
+    margin-top: 15px;
+
+    color: #2563eb;
+
+    text-decoration: none;
+
+    word-break: break-all;
+
+}
+
+
+.url-link:hover {
+
+    text-decoration: underline;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Open Credential Button
+|--------------------------------------------------------------------------
+*/
 
 .open-button {
 
@@ -478,9 +723,7 @@ body {
 
     margin-top: 18px;
 
-    padding:
-
-        10px 15px;
+    padding: 10px 15px;
 
     background: #1e293b;
 
@@ -500,6 +743,12 @@ body {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Empty
+|--------------------------------------------------------------------------
+*/
+
 .empty {
 
     background: white;
@@ -511,6 +760,13 @@ body {
     text-align: center;
 
     color: #64748b;
+
+}
+
+
+.empty h3 {
+
+    color: #475569;
 
 }
 
@@ -527,16 +783,18 @@ body {
 
         flex-direction: column;
 
+        align-items: flex-start;
+
         gap: 15px;
+
+        padding: 18px 20px;
 
     }
 
 
     .navbar-links {
 
-        flex-wrap: wrap;
-
-        justify-content: center;
+        gap: 14px;
 
     }
 
@@ -554,17 +812,38 @@ body {
 
     }
 
+
+    .result-header {
+
+        flex-direction: column;
+
+    }
+
+
+    .result-date {
+
+        white-space: normal;
+
+    }
+
+
+    .container {
+
+        padding: 0 15px;
+
+    }
+
 }
 
 </style>
+
+    <link rel="stylesheet" href="/assets/theme.css">
 
 </head>
 
 
 <body>
 
-
-<!-- Navbar -->
 
 <div class="navbar">
 
@@ -580,59 +859,65 @@ body {
 
 
 <a href="/dashboard.php">
-Dashboard
+    Dashboard
 </a>
 
 
 <a href="/departments.php">
-Departments
+    Departments
 </a>
 
 
 <a href="/credentials.php">
-Credentials
+    Credentials
 </a>
 
 
 <?php if (canManageUsers()): ?>
 
 <a href="/manage-users.php">
-Manage Users
+    Manage Users
+</a>
+
+<?php endif; ?>
+
+
+<?php if (
+    function_exists('canManageRoot')
+    &&
+    canManageRoot()
+): ?>
+
+<a href="/root-management.php">
+    Root Management
 </a>
 
 <?php endif; ?>
 
 
 <a href="/logout.php">
-Logout
+    Logout
 </a>
 
 
 </div>
 
-
 </div>
 
 
-<!-- Content -->
-
 <div class="container">
 
-
-<!-- Search Card -->
 
 <div class="search-card">
 
 
 <h1>
-🔍 Search Credentials
+    🔍 Search Credentials
 </h1>
 
 
 <p>
-
-Search by service, username, employee, department, or notes.
-
+    Search by <strong>Employee ID, Employee Name, or Service Name</strong>.
 </p>
 
 
@@ -651,9 +936,17 @@ Search by service, username, employee, department, or notes.
 
     class="search-input"
 
-    placeholder="Example: WordPress, Vishesh, IT Department..."
+    placeholder="Example: Gmail, Chat GPT, Vishesh, 304..."
 
-    value="<?php echo htmlspecialchars($query); ?>"
+    value="<?php
+        echo htmlspecialchars(
+            $query,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+    ?>"
+
+    autocomplete="off"
 
     autofocus
 
@@ -664,9 +957,7 @@ Search by service, username, employee, department, or notes.
     type="submit"
     class="search-button"
 >
-
-Search
-
+    Search
 </button>
 
 
@@ -676,41 +967,59 @@ Search
 </div>
 
 
-<!-- Search Results -->
+<?php if ($searchError !== null): ?>
+
+<div class="search-error">
+
+    <?php
+    echo htmlspecialchars(
+        $searchError,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+    ?>
+
+</div>
+
+<?php endif; ?>
+
 
 <?php if ($query !== ''): ?>
 
 
 <h2 class="results-title">
 
-Search results for:
+    Search results for:
 
-"<?php echo htmlspecialchars($query); ?>"
+    "<?php
+    echo htmlspecialchars(
+        $query,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+    ?>"
 
 </h2>
 
 
-<?php if (empty($results)): ?>
+<?php if (!empty($results)): ?>
 
 
-<div class="empty">
+<div class="result-summary">
 
-<h3>
-No results found
-</h3>
+    Found
 
+    <strong>
+        <?php echo count($results); ?>
+    </strong>
 
-<p>
-
-Try searching using a different service, employee, or department name.
-
-</p>
-
+    matching credential<?php
+        echo count($results) === 1
+            ? ''
+            : 's';
+    ?>.
 
 </div>
-
-
-<?php else: ?>
 
 
 <?php foreach ($results as $result): ?>
@@ -727,25 +1036,31 @@ Try searching using a different service, employee, or department name.
 
 <div class="service-name">
 
-🔑
+    🔑
 
-<?php
-echo htmlspecialchars(
-    $result['service_name']
-);
-?>
+    <?php
+    echo htmlspecialchars(
+        (string) $result['service_name'],
+        ENT_QUOTES,
+        'UTF-8'
+    );
+    ?>
 
 </div>
 
 
 <div class="badge">
 
-<?php
-echo htmlspecialchars(
-    $result['department_name']
-    ?? 'No Department'
-);
-?>
+    <?php
+    echo htmlspecialchars(
+        (string) (
+            $result['department_name']
+            ?? 'No Department'
+        ),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+    ?>
 
 </div>
 
@@ -753,18 +1068,31 @@ echo htmlspecialchars(
 </div>
 
 
-<div>
+<div class="result-date">
 
-<?php
-echo htmlspecialchars(
-    date(
-        'd M Y',
+    <?php
+
+    $createdTimestamp =
         strtotime(
+            (string)
             $result['created_at']
+        );
+
+
+    echo $createdTimestamp !== false
+
+        ? htmlspecialchars(
+            date(
+                'd M Y',
+                $createdTimestamp
+            ),
+            ENT_QUOTES,
+            'UTF-8'
         )
-    )
-);
-?>
+
+        : '-';
+
+    ?>
 
 </div>
 
@@ -777,86 +1105,205 @@ echo htmlspecialchars(
 
 <div>
 
-<div class="info-label">
-
-Employee
-
-</div>
+    <div class="info-label">
+        Employee
+    </div>
 
 
-<div class="info-value">
+    <div class="info-value">
 
-<?php
-echo htmlspecialchars(
-    $result['employee_name']
-    ?? 'Not Assigned'
-);
-?>
+        <?php
+        echo htmlspecialchars(
+            (string) (
+                $result['employee_name']
+                ?? 'Not Assigned'
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
 
-</div>
 
+        <?php if (
+            !empty(
+                $result['employee_code']
+            )
+        ): ?>
+
+            <br>
+
+            <small>
+
+                ID:
+
+                <?php
+                echo htmlspecialchars(
+                    (string)
+                    $result['employee_code'],
+                    ENT_QUOTES,
+                    'UTF-8'
+                );
+                ?>
+
+            </small>
+
+        <?php endif; ?>
+
+    </div>
 
 </div>
 
 
 <div>
 
-<div class="info-label">
-
-Username
-
-</div>
+    <div class="info-label">
+        Username
+    </div>
 
 
-<div class="info-value">
+    <div class="info-value">
 
-<?php
-echo htmlspecialchars(
-    $result['credential_username']
-    ?? '-'
-);
-?>
+        <?php
+        echo htmlspecialchars(
+            (string) (
+                $result[
+                    'credential_username'
+                ]
+                ?? '-'
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
 
-</div>
-
+    </div>
 
 </div>
 
 
 <div>
 
-<div class="info-label">
+    <div class="info-label">
+        Added By
+    </div>
 
-Added By
+
+    <div class="info-value">
+
+        <?php
+        echo htmlspecialchars(
+            (string) (
+                $result[
+                    'created_by_name'
+                ]
+                ?? 'Unknown'
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
+
+    </div>
 
 </div>
 
 
-<div class="info-value">
+<?php if (
+    !empty(
+        $result['service_url']
+    )
+): ?>
 
-<?php
-echo htmlspecialchars(
-    $result['created_by_name']
-    ?? 'Unknown'
-);
-?>
+<div>
+
+    <div class="info-label">
+        URL
+    </div>
+
+
+    <div class="info-value">
+
+        <?php
+        echo htmlspecialchars(
+            (string)
+            $result['service_url'],
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
+
+    </div>
+
+</div>
+
+<?php endif; ?>
+
 
 </div>
 
 
-</div>
+<?php if (
+    !empty(
+        $result['notes']
+    )
+): ?>
+
+<div class="notes">
+
+    <div class="info-label">
+        Notes
+    </div>
 
 
+    <div class="notes-text">
+
+        <?php
+        echo htmlspecialchars(
+            (string) $result['notes'],
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
+
+    </div>
+
 </div>
+
+<?php endif; ?>
+
+
+<?php if (
+    !empty(
+        $result['service_url']
+    )
+): ?>
+
+<a
+    class="url-link"
+    href="<?php
+        echo htmlspecialchars(
+            (string) $result['service_url'],
+            ENT_QUOTES,
+            'UTF-8'
+        );
+    ?>"
+    target="_blank"
+    rel="noopener noreferrer"
+>
+    🌐 Open Service URL
+</a>
+
+<?php endif; ?>
 
 
 <a
     class="open-button"
-    href="/credentials.php?employee_id=<?php echo (int) ($result['employee_id'] ?? 0); ?>"
+    href="/credentials.php?employee_id=<?php
+        echo (int)
+            $result['employee_id'];
+    ?>"
 >
-
-View Credentials
-
+    View Credentials
 </a>
 
 
@@ -864,6 +1311,44 @@ View Credentials
 
 
 <?php endforeach; ?>
+
+
+<?php else: ?>
+
+
+<div class="empty">
+
+    <h3>
+        No results found
+    </h3>
+
+
+    <p>
+
+        No credentials matched
+
+        "<?php
+        echo htmlspecialchars(
+            $query,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>".
+
+    </p>
+
+
+    <p>
+
+        Search using an
+        <strong>Employee ID</strong>,
+        <strong>Employee Name</strong>,
+        or
+        <strong>Service Name</strong>.
+
+    </p>
+
+</div>
 
 
 <?php endif; ?>
@@ -874,17 +1359,20 @@ View Credentials
 
 <div class="empty">
 
-<h3>
-Start Searching
-</h3>
+    <h3>
+        Start Searching
+    </h3>
 
 
-<p>
+    <p>
 
-Use the search bar above to find credentials.
+        Search using an
+        <strong>Employee ID</strong>,
+        <strong>Employee Name</strong>,
+        or
+        <strong>Service Name</strong>.
 
-</p>
-
+    </p>
 
 </div>
 
@@ -894,6 +1382,8 @@ Use the search bar above to find credentials.
 
 </div>
 
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

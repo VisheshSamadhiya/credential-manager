@@ -361,6 +361,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     href="/assets/css/style.css"
 >
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 
@@ -748,6 +750,8 @@ echo htmlspecialchars(
 
 <script src="/assets/js/app.js"></script>
 
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

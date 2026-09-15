@@ -189,6 +189,8 @@ $departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 <body>
@@ -379,6 +381,8 @@ $departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 </div>
 
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

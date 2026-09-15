@@ -359,6 +359,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </style>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
 </head>
 
 
@@ -523,6 +525,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </div>
 
+
+    <script src="/assets/theme.js"></script>
 
 </body>
 

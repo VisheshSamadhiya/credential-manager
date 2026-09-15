@@ -61,10 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Credential Manager - Login</title>
-<style>body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}.login-box{background:#fff;padding:35px;width:350px;border-radius:10px;box-shadow:0 5px 20px rgba(0,0,0,.1)}h1{text-align:center;margin-bottom:25px}input{width:100%;padding:12px;margin:10px 0;box-sizing:border-box}button{width:100%;padding:12px;border:none;background:#222;color:#fff;cursor:pointer}.error{color:#b00020;margin-bottom:15px}.success{color:#155724;background:#d4edda;padding:12px;border-radius:6px;margin-bottom:15px}</style></head>
+<style>body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}.login-box{background:#fff;padding:35px;width:350px;border-radius:10px;box-shadow:0 5px 20px rgba(0,0,0,.1)}h1{text-align:center;margin-bottom:25px}input{width:100%;padding:12px;margin:10px 0;box-sizing:border-box}button{width:100%;padding:12px;border:none;background:#222;color:#fff;cursor:pointer}.error{color:#b00020;margin-bottom:15px}.success{color:#155724;background:#d4edda;padding:12px;border-radius:6px;margin-bottom:15px}</style>    <link rel="stylesheet" href="/assets/theme.css">
+
+</head>
 <body><div class="login-box"><h1>Credential Manager</h1>
 <?php if ($expired): ?><div class="success">Your session expired. Please log in again.</div><?php endif; ?>
 <?php if ($twoFactorRequired): ?><div class="success">Two-factor authentication is required.</div><?php endif; ?>
 <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 <form method="POST" autocomplete="off"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="text" name="username" placeholder="Username" required autofocus><input type="password" name="password" placeholder="Password" required><button type="submit">Login</button></form>
-</div></body></html>
+</div>    <script src="/assets/theme.js"></script>
+
+</body></html>

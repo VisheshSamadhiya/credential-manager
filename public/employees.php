@@ -1,17 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
-
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
-
 requireLogin();
-
 
 /*
 |--------------------------------------------------------------------------
@@ -23,14 +17,10 @@ $departmentId = isset($_GET['department_id'])
     ? (int) $_GET['department_id']
     : 0;
 
-
 if ($departmentId <= 0) {
-
     header('Location: /departments.php');
     exit;
-
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -42,26 +32,20 @@ $stmt = $pdo->prepare(
     "SELECT
         id,
         department_name
-    FROM departments
-    WHERE id = :id"
+     FROM departments
+     WHERE id = :id"
 );
-
 
 $stmt->execute([
     ':id' => $departmentId
 ]);
 
-
 $department = $stmt->fetch(PDO::FETCH_ASSOC);
 
-
 if (!$department) {
-
     header('Location: /departments.php');
     exit;
-
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -75,19 +59,16 @@ $stmt = $pdo->prepare(
         employee_name,
         employee_id,
         created_at
-    FROM employees
-    WHERE department_id = :department_id
-    ORDER BY employee_name ASC"
+     FROM employees
+     WHERE department_id = :department_id
+     ORDER BY employee_name ASC"
 );
-
 
 $stmt->execute([
     ':department_id' => $departmentId
 ]);
 
-
 $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 
 /*
 |--------------------------------------------------------------------------
@@ -105,637 +86,1059 @@ $userRole = $_SESSION['role'] ?? 'viewer';
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>
-    <?php
-    echo htmlspecialchars(
-        $department['department_name']
-    );
-    ?>
-    - Employees
-</title>
+    <title>
+        <?php
+        echo htmlspecialchars(
+            (string) $department['department_name'],
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
+        | Employees
+    </title>
 
+    <style>
 
-<style>
+        * {
+            box-sizing: border-box;
+        }
 
-* {
-    box-sizing: border-box;
-}
+        body {
+            margin: 0;
 
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f6f9;
-    color: #333;
-}
+            background:
+                linear-gradient(
+                    135deg,
+                    #f5f3ff 0%,
+                    #faf5ff 50%,
+                    #fdf2f8 100%
+                );
 
+            color: #1f2937;
 
-/* Navbar */
+            min-height: 100vh;
+        }
 
-.navbar {
+        /* =========================================
+           NAVBAR
+           ========================================= */
 
-    background: #2b2b2b;
-    padding: 18px 40px;
+        .navbar {
+            min-height: 72px;
 
-    color: white;
+            padding: 0 40px;
 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+            background:
+                linear-gradient(
+                    135deg,
+                    #4c1d95,
+                    #6d28d9,
+                    #9d174d
+                );
 
-}
+            color: #ffffff;
 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
 
-.navbar-title {
+            box-shadow:
+                0 8px 30px rgba(76, 29, 149, 0.22);
 
-    font-size: 18px;
-    font-weight: bold;
+            position: relative;
+            z-index: 10;
+        }
 
-}
+        .navbar-title {
+            font-size: 21px;
+            font-weight: 750;
 
+            letter-spacing: -0.3px;
+        }
 
-.navbar-links {
+        .navbar-links {
+            display: flex;
+            align-items: center;
 
-    display: flex;
-    align-items: center;
-    gap: 25px;
-    flex-wrap: wrap;
+            gap: 8px;
 
-}
+            flex-wrap: wrap;
+        }
 
+        .navbar a {
+            color: rgba(255, 255, 255, 0.9);
 
-.navbar a {
+            text-decoration: none;
 
-    color: white;
-    text-decoration: none;
+            padding: 10px 14px;
 
-}
+            border-radius: 10px;
 
+            font-size: 14px;
+            font-weight: 600;
 
-.navbar a:hover {
+            transition:
+                background 0.2s ease,
+                color 0.2s ease,
+                transform 0.2s ease;
+        }
 
-    text-decoration: underline;
+        .navbar a:hover {
+            background: rgba(255, 255, 255, 0.16);
 
-}
+            color: #ffffff;
 
+            transform: translateY(-1px);
+        }
 
-/* Main Container */
+        .navbar .logout {
+            background: rgba(255, 255, 255, 0.12);
+        }
 
-.container {
+        /* =========================================
+           MAIN CONTAINER
+           ========================================= */
 
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 30px;
+        .container {
+            max-width: 1150px;
 
-}
+            margin: 0 auto;
 
+            padding: 45px 30px 70px;
+        }
 
-/* Back Button */
+        /* =========================================
+           BACK LINK
+           ========================================= */
 
-.back {
+        .back {
+            display: inline-flex;
+            align-items: center;
 
-    display: inline-block;
-    margin-bottom: 20px;
+            margin-bottom: 25px;
 
-    color: #333;
+            color: #6d28d9;
 
-    text-decoration: none;
-    font-weight: bold;
+            text-decoration: none;
 
-}
+            font-size: 14px;
+            font-weight: 700;
 
+            transition:
+                color 0.2s ease,
+                transform 0.2s ease;
+        }
 
-.back:hover {
+        .back:hover {
+            color: #be185d;
 
-    text-decoration: underline;
+            transform: translateX(-3px);
+        }
 
-}
+        /* =========================================
+           PAGE HEADER
+           ========================================= */
 
+        .page-header {
+            display: flex;
 
-/* Header */
+            justify-content: space-between;
+            align-items: flex-end;
 
-.page-header {
+            gap: 25px;
 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+            margin-bottom: 38px;
+        }
 
-    margin-bottom: 25px;
+        .page-label {
+            display: inline-block;
 
-}
+            padding: 7px 12px;
 
+            margin-bottom: 12px;
 
-/* Employee Grid */
+            border-radius: 999px;
 
-.employee-list {
+            background: #ede9fe;
 
-    display: grid;
+            color: #6d28d9;
 
-    grid-template-columns:
-        repeat(auto-fit, minmax(260px, 1fr));
+            font-size: 12px;
+            font-weight: 750;
 
-    gap: 20px;
+            letter-spacing: 0.4px;
 
-}
+            text-transform: uppercase;
+        }
 
+        .page-header h1 {
+            margin: 0 0 10px;
 
-/* Employee Card */
+            font-size: 34px;
 
-.employee-card {
+            line-height: 1.2;
 
-    background: white;
+            color: #2e1065;
 
-    padding: 22px;
+            letter-spacing: -0.8px;
+        }
 
-    border-radius: 10px;
+        .page-header p {
+            margin: 0;
 
-    box-shadow:
-        0 2px 8px rgba(0,0,0,0.08);
+            color: #6b7280;
 
-    transition: 0.2s;
+            font-size: 15px;
+        }
 
-}
+        /* =========================================
+           ADD EMPLOYEE BUTTON
+           ========================================= */
 
+        .add-button {
+            display: inline-flex;
 
-.employee-card:hover {
+            align-items: center;
+            justify-content: center;
 
-    transform: translateY(-3px);
+            padding: 12px 18px;
 
-    box-shadow:
-        0 6px 15px rgba(0,0,0,0.12);
+            border-radius: 11px;
 
-}
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #db2777
+                );
 
+            color: #ffffff;
 
-.employee-card h3 {
+            text-decoration: none;
 
-    margin-top: 0;
-    margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 700;
 
-}
+            border: none;
 
+            box-shadow:
+                0 7px 18px
+                rgba(124, 58, 237, 0.22);
 
-.employee-id {
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
 
-    color: #666;
+        .add-button:hover {
+            transform: translateY(-2px);
 
-    font-size: 14px;
+            box-shadow:
+                0 12px 25px
+                rgba(124, 58, 237, 0.28);
+        }
 
-    margin-bottom: 20px;
+        /* =========================================
+           SECTION TITLE
+           ========================================= */
 
-}
+        .section-header {
+            display: flex;
 
+            align-items: center;
+            justify-content: space-between;
 
-/* Buttons */
+            margin-bottom: 18px;
+        }
 
-.button {
+        .section-header h2 {
+            margin: 0;
 
-    display: inline-block;
+            font-size: 24px;
 
-    background: #333;
+            color: #3b0764;
+        }
 
-    color: white;
+        .employee-count {
+            padding: 6px 11px;
 
-    padding: 10px 16px;
+            border-radius: 999px;
 
-    text-decoration: none;
+            background: #f3e8ff;
 
-    border-radius: 5px;
+            color: #7e22ce;
 
-    border: none;
+            font-size: 12px;
+            font-weight: 750;
+        }
 
-    cursor: pointer;
+        /* =========================================
+           EMPLOYEE GRID
+           ========================================= */
 
-    font-size: 14px;
+        .employee-list {
+            display: grid;
 
-}
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(280px, 1fr)
+                );
 
+            gap: 22px;
+        }
 
-.button:hover {
+        /* =========================================
+           EMPLOYEE CARD
+           ========================================= */
 
-    background: #555;
+        .employee-card {
+            position: relative;
 
-}
+            padding: 25px;
 
+            min-height: 190px;
 
-/* Admin Button */
+            border-radius: 18px;
 
-.add-button {
+            /*
+             * Same dark tone as department cards
+             */
+            background:
+                linear-gradient(
+                    135deg,
+                    #4c1d95,
+                    #6b21a8
+                );
 
-    background: #333;
+            border: 1px solid #7e22ce;
 
-}
+            color: #ffffff;
 
+            box-shadow:
+                0 8px 24px
+                rgba(76, 29, 149, 0.18);
 
-/* Delete Button */
+            overflow: hidden;
 
-.delete-button {
+            transition:
+                background 0.25s ease,
+                border-color 0.25s ease,
+                transform 0.25s ease,
+                box-shadow 0.25s ease;
+        }
 
-    background: #c0392b;
+        /* Decorative circles */
 
-    color: white;
+        .employee-card::before {
+            content: "";
 
-    padding: 10px 16px;
+            position: absolute;
 
-    border: none;
+            width: 125px;
+            height: 125px;
 
-    border-radius: 5px;
+            top: -65px;
+            right: -45px;
 
-    cursor: pointer;
+            border-radius: 50%;
 
-    font-size: 14px;
+            background:
+                rgba(255, 255, 255, 0.08);
 
-    margin-top: 10px;
+            transition:
+                background 0.25s ease,
+                transform 0.25s ease;
+        }
 
-}
+        .employee-card::after {
+            content: "";
 
+            position: absolute;
 
-.delete-button:hover {
+            width: 90px;
+            height: 90px;
 
-    background: #a93226;
+            bottom: -50px;
+            left: -30px;
 
-}
+            border-radius: 50%;
 
+            background:
+                rgba(236, 72, 153, 0.18);
 
-/* Employee Actions */
+            transition:
+                background 0.25s ease,
+                transform 0.25s ease;
+        }
 
-.employee-actions {
+        /*
+         * Hover:
+         * Dark -> light purple/pink
+         */
 
-    display: flex;
+        .employee-card:hover {
+            background:
+                linear-gradient(
+                    135deg,
+                    #f3e8ff,
+                    #fce7f3
+                );
 
-    gap: 10px;
+            border-color: #d8b4fe;
 
-    flex-wrap: wrap;
+            transform: translateY(-5px);
 
-}
+            box-shadow:
+                0 16px 32px
+                rgba(168, 85, 247, 0.20);
+        }
 
+        .employee-card:hover::before {
+            background:
+                rgba(168, 85, 247, 0.12);
 
-/* Empty State */
+            transform: scale(1.15);
+        }
 
-.empty {
+        .employee-card:hover::after {
+            background:
+                rgba(236, 72, 153, 0.12);
 
-    background: white;
+            transform: scale(1.15);
+        }
 
-    padding: 40px;
+        /* =========================================
+           EMPLOYEE NAME
+           ========================================= */
 
-    text-align: center;
+        .employee-card h3 {
+            position: relative;
 
-    border-radius: 10px;
+            z-index: 2;
 
-}
+            margin: 0 0 12px;
 
+            font-size: 21px;
 
-/* Success Message */
+            line-height: 1.3;
 
-.success {
+            color: #ffffff;
 
-    background: #d4edda;
+            transition:
+                color 0.25s ease;
+        }
 
-    color: #155724;
+        .employee-card:hover h3 {
+            color: #6d28d9;
+        }
 
-    border: 1px solid #c3e6cb;
+        /* =========================================
+           EMPLOYEE ID
+           ========================================= */
 
-    padding: 15px;
+        .employee-id {
+            position: relative;
 
-    border-radius: 6px;
+            z-index: 2;
 
-    margin-bottom: 20px;
+            margin-bottom: 22px;
 
-}
+            color:
+                rgba(255, 255, 255, 0.75);
 
+            font-size: 14px;
 
-/* Error Message */
+            transition:
+                color 0.25s ease;
+        }
 
-.error {
+        .employee-id strong {
+            color: #ffffff;
 
-    background: #f8d7da;
+            font-weight: 750;
 
-    color: #721c24;
+            transition:
+                color 0.25s ease;
+        }
 
-    border: 1px solid #f5c6cb;
+        .employee-card:hover .employee-id {
+            color: #7e22ce;
+        }
 
-    padding: 15px;
+        .employee-card:hover .employee-id strong {
+            color: #6d28d9;
+        }
 
-    border-radius: 6px;
+        /* =========================================
+           ACTIONS
+           ========================================= */
 
-    margin-bottom: 20px;
+        .employee-actions {
+            position: relative;
 
-}
+            z-index: 3;
 
+            display: flex;
 
-/* Mobile */
+            align-items: center;
 
-@media (max-width: 700px) {
+            gap: 10px;
 
-    .navbar {
+            flex-wrap: wrap;
+        }
 
-        padding: 18px 20px;
+        /* =========================================
+           VIEW CREDENTIALS
+           ========================================= */
 
-        flex-direction: column;
+        .button {
+            display: inline-flex;
 
-        align-items: flex-start;
+            align-items: center;
+            justify-content: center;
 
-        gap: 15px;
+            padding: 10px 16px;
 
-    }
+            border-radius: 10px;
 
+            background:
+                rgba(255, 255, 255, 0.14);
 
-    .container {
+            border: 1px solid
+                rgba(255, 255, 255, 0.20);
 
-        padding: 20px;
+            color: #ffffff;
 
-    }
+            text-decoration: none;
 
+            font-size: 13px;
+            font-weight: 700;
 
-    .page-header {
+            transition:
+                background 0.2s ease,
+                color 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
+        }
 
-        flex-direction: column;
+        .button:hover {
+            background: #ffffff;
 
-        align-items: flex-start;
+            color: #6d28d9;
 
-        gap: 15px;
+            border-color: #ffffff;
 
-    }
+            transform: translateY(-1px);
+        }
 
-}
+        .employee-card:hover .button {
+            background: #7c3aed;
 
-</style>
+            border-color: #7c3aed;
+
+            color: #ffffff;
+        }
+
+        .employee-card:hover .button:hover {
+            background: #6d28d9;
+
+            border-color: #6d28d9;
+        }
+
+        /* =========================================
+           DELETE BUTTON
+           ========================================= */
+
+        .delete-button {
+            display: inline-flex;
+
+            align-items: center;
+            justify-content: center;
+
+            padding: 10px 16px;
+
+            border-radius: 10px;
+
+            border: 1px solid
+                rgba(255, 255, 255, 0.20);
+
+            background:
+                rgba(190, 24, 93, 0.35);
+
+            color: #ffffff;
+
+            cursor: pointer;
+
+            font-family: inherit;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            transition:
+                background 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .delete-button:hover {
+            background: #be123c;
+
+            border-color: #be123c;
+
+            transform: translateY(-1px);
+        }
+
+        .employee-card:hover .delete-button {
+            background: #be123c;
+
+            border-color: #be123c;
+        }
+
+        .employee-card:hover .delete-button:hover {
+            background: #9f1239;
+
+            border-color: #9f1239;
+        }
+
+        /* =========================================
+           EMPTY STATE
+           ========================================= */
+
+        .empty {
+            padding: 50px 30px;
+
+            text-align: center;
+
+            background: #ffffff;
+
+            border: 1px solid #e9d5ff;
+
+            border-radius: 18px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(76, 29, 149, 0.08);
+        }
+
+        .empty-icon {
+            width: 56px;
+            height: 56px;
+
+            margin: 0 auto 15px;
+
+            border-radius: 16px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #f3e8ff;
+
+            color: #7e22ce;
+
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .empty h3 {
+            margin: 0 0 8px;
+
+            color: #3b0764;
+
+            font-size: 20px;
+        }
+
+        .empty p {
+            margin: 0;
+
+            color: #6b7280;
+
+            font-size: 14px;
+        }
+
+        /* =========================================
+           ALERTS
+           ========================================= */
+
+        .success {
+            margin-bottom: 25px;
+
+            padding: 14px 17px;
+
+            border-radius: 12px;
+
+            background: #ecfdf5;
+
+            border: 1px solid #a7f3d0;
+
+            color: #047857;
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .error {
+            margin-bottom: 25px;
+
+            padding: 14px 17px;
+
+            border-radius: 12px;
+
+            background: #fff1f2;
+
+            border: 1px solid #fecdd3;
+
+            color: #be123c;
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* =========================================
+           MOBILE
+           ========================================= */
+
+        @media (max-width: 800px) {
+
+            .navbar {
+                padding: 15px 20px;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 14px;
+            }
+
+            .navbar-links {
+                width: 100%;
+            }
+
+            .navbar a {
+                padding: 8px 10px;
+
+                font-size: 13px;
+            }
+
+            .container {
+                padding: 35px 20px 50px;
+            }
+
+            .page-header {
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 18px;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .add-button {
+                width: 100%;
+            }
+
+            .employee-list {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="/assets/theme.css">
 
 </head>
 
-
 <body>
 
+    <!-- =========================================
+         NAVIGATION
+         ========================================= -->
 
-<!-- Navigation -->
+    <header class="navbar">
 
-<div class="navbar">
+        <div class="navbar-title">
+            Credential Manager
+        </div>
 
-    <div class="navbar-title">
+        <nav class="navbar-links">
 
-        Credential Manager
-
-    </div>
-
-
-    <div class="navbar-links">
-
-        <a href="/dashboard.php">
-            Dashboard
-        </a>
-
-
-        <a href="/departments.php">
-            Departments
-        </a>
-
-
-        <a href="/credentials.php">
-            Credentials
-        </a>
-
-
-        <?php if ($userRole === 'admin'): ?>
-
-            <a href="/manage-users.php">
-                Manage Users
+            <a href="/dashboard.php">
+                Dashboard
             </a>
+
+            <a href="/departments.php">
+                Departments
+            </a>
+
+            <a href="/credentials.php">
+                Credentials
+            </a>
+
+            <?php if (isAdmin()): ?>
+
+                <a href="/manage-users.php">
+                    Manage Users
+                </a>
+
+            <?php endif; ?>
+
+            <a href="/logout.php">
+                Logout
+            </a>
+
+        </nav>
+
+    </header>
+
+
+    <!-- =========================================
+         MAIN CONTENT
+         ========================================= -->
+
+    <main class="container">
+
+        <a
+            href="/departments.php"
+            class="back"
+        >
+            ← Back to Departments
+        </a>
+
+
+        <?php if (isset($_GET['deleted'])): ?>
+
+            <div class="success">
+                Employee deleted successfully.
+            </div>
 
         <?php endif; ?>
 
 
-        <a href="/logout.php">
-            Logout
-        </a>
+        <?php if (isset($_GET['error'])): ?>
 
-    </div>
+            <div class="error">
+                Unable to complete the requested action.
+            </div>
 
-</div>
-
-
-<!-- Main Content -->
-
-<div class="container">
+        <?php endif; ?>
 
 
-<a
-    href="/departments.php"
-    class="back"
->
-    ← Back to Departments
-</a>
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+
+            <div>
+
+                <span class="page-label">
+                    Department
+                </span>
+
+                <h1>
+
+                    <?php
+                    echo htmlspecialchars(
+                        (string) $department['department_name'],
+                        ENT_QUOTES,
+                        'UTF-8'
+                    );
+                    ?>
+
+                </h1>
+
+                <p>
+                    Manage employees and their credentials.
+                </p>
+
+            </div>
 
 
-<?php if (isset($_GET['deleted'])): ?>
+            <?php if ($userRole === 'admin' || $userRole === 'root'): ?>
 
-    <div class="success">
+                <a
+                    href="/add-employee.php?department_id=<?php echo $departmentId; ?>"
+                    class="add-button"
+                >
+                    + Add Employee
+                </a>
 
-        Employee deleted successfully.
+            <?php endif; ?>
 
-    </div>
-
-<?php endif; ?>
-
-
-<?php if (isset($_GET['error'])): ?>
-
-    <div class="error">
-
-        Unable to complete the requested action.
-
-    </div>
-
-<?php endif; ?>
+        </div>
 
 
-<div class="page-header">
+        <!-- SECTION HEADER -->
+
+        <div class="section-header">
+
+            <h2>
+                Employees
+            </h2>
+
+            <?php if (!empty($employees)): ?>
+
+                <span class="employee-count">
+                    <?php echo count($employees); ?>
+                    <?php echo count($employees) === 1 ? 'Employee' : 'Employees'; ?>
+                </span>
+
+            <?php endif; ?>
+
+        </div>
 
 
-<div>
+        <?php if (empty($employees)): ?>
 
-    <h1>
+            <div class="empty">
 
-        <?php
-        echo htmlspecialchars(
-            $department['department_name']
-        );
-        ?>
+                <div class="empty-icon">
+                    !
+                </div>
 
-    </h1>
+                <h3>
+                    No employees found.
+                </h3>
 
+                <?php if ($userRole === 'admin' || $userRole === 'root'): ?>
 
-    <p>
-        Manage employees and their credentials.
-    </p>
+                    <p>
+                        Add the first employee to this department.
+                    </p>
 
-</div>
+                <?php else: ?>
 
+                    <p>
+                        No employees are currently available in this department.
+                    </p>
 
-<!-- Only Admin Can Add Employees -->
+                <?php endif; ?>
 
-<?php if ($userRole === 'admin'): ?>
+            </div>
 
-    <a
-        href="/add-employee.php?department_id=<?php echo $departmentId; ?>"
-        class="button add-button"
-    >
-        + Add Employee
-    </a>
-
-<?php endif; ?>
-
-
-</div>
-
-
-<h2>Employees</h2>
-
-
-<?php if (empty($employees)): ?>
-
-
-    <div class="empty">
-
-        <h3>
-            No employees found.
-        </h3>
-
-
-        <?php if ($userRole === 'admin'): ?>
-
-            <p>
-                Add the first employee to this department.
-            </p>
 
         <?php else: ?>
 
-            <p>
-                No employees are currently available in this department.
-            </p>
+
+            <div class="employee-list">
+
+                <?php foreach ($employees as $employee): ?>
+
+                    <article class="employee-card">
+
+                        <h3>
+
+                            <?php
+                            echo htmlspecialchars(
+                                (string) $employee['employee_name'],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
+                            ?>
+
+                        </h3>
+
+
+                        <?php if (!empty($employee['employee_id'])): ?>
+
+                            <div class="employee-id">
+
+                                Employee ID:
+
+                                <strong>
+
+                                    <?php
+                                    echo htmlspecialchars(
+                                        (string) $employee['employee_id'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                    ?>
+
+                                </strong>
+
+                            </div>
+
+                        <?php endif; ?>
+
+
+                        <div class="employee-actions">
+
+
+                            <a
+                                href="/credentials.php?employee_id=<?php echo (int) $employee['id']; ?>"
+                                class="button"
+                            >
+                                View Credentials
+                            </a>
+
+
+                            <?php if ($userRole === 'admin' || $userRole === 'root'): ?>
+
+                                <form
+                                    method="POST"
+                                    action="/delete-employee.php"
+                                    onsubmit="return confirm('WARNING: Deleting this employee may also delete all credentials assigned to them. Are you sure you want to continue?');"
+                                    style="margin: 0;"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="employee_id"
+                                        value="<?php echo (int) $employee['id']; ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="department_id"
+                                        value="<?php echo $departmentId; ?>"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="delete-button"
+                                    >
+                                        Delete Employee
+                                    </button>
+
+                                </form>
+
+                            <?php endif; ?>
+
+
+                        </div>
+
+                    </article>
+
+                <?php endforeach; ?>
+
+            </div>
+
 
         <?php endif; ?>
 
-    </div>
 
+    </main>
 
-<?php else: ?>
-
-
-<div class="employee-list">
-
-
-<?php foreach ($employees as $employee): ?>
-
-
-<div class="employee-card">
-
-
-<h3>
-
-    <?php
-    echo htmlspecialchars(
-        $employee['employee_name']
-    );
-    ?>
-
-</h3>
-
-
-<?php if (!empty($employee['employee_id'])): ?>
-
-    <div class="employee-id">
-
-        Employee ID:
-        <strong>
-
-            <?php
-            echo htmlspecialchars(
-                $employee['employee_id']
-            );
-            ?>
-
-        </strong>
-
-    </div>
-
-<?php endif; ?>
-
-
-<div class="employee-actions">
-
-
-<a
-    href="/credentials.php?employee_id=<?php echo $employee['id']; ?>"
-    class="button"
->
-    View Credentials
-</a>
-
-
-<!-- Only Admin Can Delete Employees -->
-
-<?php if ($userRole === 'admin'): ?>
-
-
-<form
-    method="POST"
-    action="/delete-employee.php"
-    onsubmit="return confirm('WARNING: Deleting this employee may also delete all credentials assigned to them. Are you sure you want to continue?');"
->
-
-
-<input
-    type="hidden"
-    name="employee_id"
-    value="<?php echo $employee['id']; ?>"
->
-
-
-<input
-    type="hidden"
-    name="department_id"
-    value="<?php echo $departmentId; ?>"
->
-
-
-<button
-    type="submit"
-    class="delete-button"
->
-    Delete Employee
-</button>
-
-
-</form>
-
-
-<?php endif; ?>
-
-
-</div>
-
-
-</div>
-
-
-<?php endforeach; ?>
-
-
-</div>
-
-
-<?php endif; ?>
-
-
-</div>
-
+    <script src="/assets/theme.js"></script>
 
 </body>
 
