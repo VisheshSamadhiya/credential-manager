@@ -1,0 +1,372 @@
+/*
+ * =========================================================
+ * CREDENTIAL MANAGER
+ * GLOBAL THEME CONTROLLER
+ * =========================================================
+ *
+ * Dark mode is the default.
+ *
+ * Theme preference is stored in localStorage.
+ *
+ * No emoji icons are used.
+ */
+
+(function () {
+    "use strict";
+
+    const STORAGE_KEY = "credential-manager-theme";
+
+
+    /*
+     * -------------------------------------------------------
+     * Read saved theme
+     * -------------------------------------------------------
+     */
+
+    function getStoredTheme() {
+
+        try {
+
+            const saved =
+                localStorage.getItem(STORAGE_KEY);
+
+            if (
+                saved === "dark" ||
+                saved === "light"
+            ) {
+                return saved;
+            }
+
+        } catch (error) {
+
+            /*
+             * Ignore localStorage errors.
+             */
+
+        }
+
+        return "dark";
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Apply theme
+     * -------------------------------------------------------
+     */
+
+    function applyTheme(theme) {
+
+        const root =
+            document.documentElement;
+
+        const dark =
+            theme === "dark";
+
+
+        root.classList.toggle(
+            "dark-theme",
+            dark
+        );
+
+
+        root.classList.toggle(
+            "light-theme",
+            !dark
+        );
+
+
+        root.setAttribute(
+            "data-theme",
+            dark
+                ? "dark"
+                : "light"
+        );
+
+
+        root.style.colorScheme =
+            dark
+                ? "dark"
+                : "light";
+
+
+        updateThemeButtons(dark);
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Save theme
+     * -------------------------------------------------------
+     */
+
+    function saveTheme(theme) {
+
+        try {
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                theme
+            );
+
+        } catch (error) {
+
+            /*
+             * Ignore localStorage errors.
+             */
+
+        }
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Toggle theme
+     * -------------------------------------------------------
+     */
+
+    function toggleTheme() {
+
+        const current =
+            document.documentElement.classList.contains(
+                "dark-theme"
+            )
+                ? "dark"
+                : "light";
+
+
+        const next =
+            current === "dark"
+                ? "light"
+                : "dark";
+
+
+        saveTheme(next);
+
+        applyTheme(next);
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Update toggle accessibility
+     * -------------------------------------------------------
+     */
+
+    function updateThemeButtons(isDark) {
+
+        const buttons =
+            document.querySelectorAll(
+                ".theme-toggle, [data-theme-toggle]"
+            );
+
+
+        buttons.forEach(function (button) {
+
+            button.setAttribute(
+                "aria-label",
+                isDark
+                    ? "Switch to light theme"
+                    : "Switch to dark theme"
+            );
+
+
+            button.setAttribute(
+                "title",
+                isDark
+                    ? "Switch to light theme"
+                    : "Switch to dark theme"
+            );
+
+
+            button.dataset.themeState =
+                isDark
+                    ? "dark"
+                    : "light";
+
+        });
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Create theme button
+     * -------------------------------------------------------
+     */
+
+    function createThemeButton() {
+
+        const existing =
+            document.querySelector(
+                ".theme-toggle, [data-theme-toggle]"
+            );
+
+
+        if (existing) {
+
+            return existing;
+
+        }
+
+
+        const button =
+            document.createElement("button");
+
+
+        button.type =
+            "button";
+
+
+        button.className =
+            "theme-toggle";
+
+
+        button.setAttribute(
+            "data-theme-toggle",
+            ""
+        );
+
+
+        button.setAttribute(
+            "aria-label",
+            "Switch theme"
+        );
+
+
+        document.body.appendChild(
+            button
+        );
+
+
+        return button;
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Bind buttons
+     * -------------------------------------------------------
+     */
+
+    function bindThemeButtons() {
+
+        const buttons =
+            document.querySelectorAll(
+                ".theme-toggle, [data-theme-toggle]"
+            );
+
+
+        buttons.forEach(function (button) {
+
+            if (
+                button.dataset.themeBound === "1"
+            ) {
+                return;
+            }
+
+
+            button.dataset.themeBound =
+                "1";
+
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    toggleTheme();
+
+                }
+            );
+
+        });
+
+
+        updateThemeButtons(
+            document.documentElement.classList.contains(
+                "dark-theme"
+            )
+        );
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Apply immediately
+     *
+     * This prevents the light/white flash when loading
+     * another page.
+     * -------------------------------------------------------
+     */
+
+    const initialTheme =
+        getStoredTheme();
+
+
+    applyTheme(
+        initialTheme
+    );
+
+
+    /*
+     * -------------------------------------------------------
+     * DOM ready
+     * -------------------------------------------------------
+     */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            createThemeButton();
+
+            bindThemeButtons();
+
+        }
+    );
+
+
+    /*
+     * -------------------------------------------------------
+     * Allow other scripts to change the theme
+     * -------------------------------------------------------
+     */
+
+    window.CredentialManagerTheme = {
+
+        getTheme: function () {
+
+            return document.documentElement
+                .classList
+                .contains("dark-theme")
+                ? "dark"
+                : "light";
+
+        },
+
+
+        setTheme: function (theme) {
+
+            if (
+                theme !== "dark" &&
+                theme !== "light"
+            ) {
+                return;
+            }
+
+
+            saveTheme(theme);
+
+            applyTheme(theme);
+
+        },
+
+
+        toggle: function () {
+
+            toggleTheme();
+
+        }
+
+    };
+
+})();

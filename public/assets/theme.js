@@ -1,192 +1,271 @@
+/*
+ * =========================================================
+ * CREDENTIAL MANAGER
+ * GLOBAL THEME CONTROLLER
+ * =========================================================
+ *
+ * - Dark mode is the default.
+ * - Theme persists between pages.
+ * - Does not modify page layout.
+ * - Does not inject page content.
+ * - No emoji icons.
+ * =========================================================
+ */
+
 (function () {
+    "use strict";
 
-    'use strict';
+    const STORAGE_KEY = "credential-manager-theme";
 
-    const STORAGE_KEY =
-        'credential_manager_theme';
+    const DARK = "dark";
+    const LIGHT = "light";
 
 
-    function getSavedTheme() {
+    /* =====================================================
+       READ STORED THEME
+       ===================================================== */
 
-        return localStorage.getItem(
-            STORAGE_KEY
-        );
+    function getStoredTheme() {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
 
+            if (stored === DARK || stored === LIGHT) {
+                return stored;
+            }
+
+            /* Compatibility with an older theme key */
+            const legacy = localStorage.getItem("theme");
+
+            if (legacy === DARK || legacy === LIGHT) {
+                return legacy;
+            }
+        } catch (error) {
+            /* Storage may be unavailable */
+        }
+
+        return DARK;
     }
 
 
-    function systemPrefersDark() {
-
-        return window.matchMedia &&
-            window.matchMedia(
-                '(prefers-color-scheme: dark)'
-            ).matches;
-
-    }
-
-
-    function getCurrentTheme() {
-
-        return document.documentElement
-            .classList
-            .contains('dark-theme')
-            ? 'dark'
-            : 'light';
-
-    }
-
+    /* =====================================================
+       APPLY THEME
+       ===================================================== */
 
     function applyTheme(theme) {
+        const root = document.documentElement;
 
-        const html =
-            document.documentElement;
+        const isDark = theme === DARK;
 
-        if (theme === 'dark') {
+        root.classList.toggle("dark-theme", isDark);
+        root.classList.toggle("light-theme", !isDark);
 
-            html.classList.add(
-                'dark-theme'
-            );
+        root.setAttribute(
+            "data-theme",
+            isDark ? DARK : LIGHT
+        );
 
-        } else {
+        root.style.colorScheme =
+            isDark ? DARK : LIGHT;
 
-            html.classList.remove(
-                'dark-theme'
-            );
-
-        }
-
-        updateButton();
-
+        updateThemeButtons(isDark);
     }
 
 
-    function updateButton() {
+    /* =====================================================
+       SAVE THEME
+       ===================================================== */
 
-        const button =
-            document.getElementById(
-                'global-theme-toggle'
+    function saveTheme(theme) {
+        try {
+            localStorage.setItem(
+                STORAGE_KEY,
+                theme
             );
-
-        if (!button) {
-            return;
+        } catch (error) {
+            /* Ignore storage errors */
         }
-
-        const dark =
-            getCurrentTheme() === 'dark';
-
-        button.innerHTML = dark
-            ? '<span aria-hidden="true">☀</span>'
-            : '<span aria-hidden="true">☾</span>';
-
-        button.setAttribute(
-            'aria-label',
-            dark
-                ? 'Switch to light mode'
-                : 'Switch to dark mode'
-        );
-
-        button.setAttribute(
-            'title',
-            dark
-                ? 'Switch to light mode'
-                : 'Switch to dark mode'
-        );
-
     }
 
+
+    /* =====================================================
+       TOGGLE
+       ===================================================== */
 
     function toggleTheme() {
+        const isDark =
+            document.documentElement.classList.contains(
+                "dark-theme"
+            );
 
-        const newTheme =
-            getCurrentTheme() === 'dark'
-                ? 'light'
-                : 'dark';
+        const nextTheme =
+            isDark ? LIGHT : DARK;
 
-        localStorage.setItem(
-            STORAGE_KEY,
-            newTheme
-        );
-
-        applyTheme(newTheme);
-
+        saveTheme(nextTheme);
+        applyTheme(nextTheme);
     }
 
 
-    /*
-     * Apply saved theme immediately.
-     */
+    /* =====================================================
+       UPDATE BUTTON ACCESSIBILITY
+       ===================================================== */
 
-    const savedTheme =
-        getSavedTheme();
+    function updateThemeButtons(isDark) {
+        const buttons =
+            document.querySelectorAll(
+                ".theme-toggle, [data-theme-toggle]"
+            );
 
-    if (
-        savedTheme === 'dark' ||
-        (
-            savedTheme === null &&
-            systemPrefersDark()
-        )
-    ) {
+        buttons.forEach(function (button) {
+            const nextTheme =
+                isDark ? "light" : "dark";
 
-        document.documentElement
-            .classList
-            .add('dark-theme');
+            const label =
+                isDark
+                    ? "Switch to light theme"
+                    : "Switch to dark theme";
 
+            button.setAttribute(
+                "aria-label",
+                label
+            );
+
+            button.setAttribute(
+                "title",
+                label
+            );
+
+            button.dataset.themeState =
+                isDark ? DARK : LIGHT;
+
+            button.dataset.nextTheme =
+                nextTheme;
+        });
     }
 
 
-    /*
-     * Create theme button.
-     */
+    /* =====================================================
+       CREATE GLOBAL TOGGLE IF PAGE DOES NOT HAVE ONE
+       ===================================================== */
 
-    function createThemeButton() {
+    function createToggleIfMissing() {
+        const existing =
+            document.querySelector(
+                ".theme-toggle, [data-theme-toggle]"
+            );
 
-        if (
-            document.getElementById(
-                'global-theme-toggle'
-            )
-        ) {
+        if (existing) {
+            return;
+        }
+
+        if (!document.body) {
             return;
         }
 
         const button =
-            document.createElement(
-                'button'
-            );
+            document.createElement("button");
 
-        button.id =
-            'global-theme-toggle';
+        button.type = "button";
 
-        button.type =
-            'button';
+        button.className =
+            "theme-toggle";
 
-        button.addEventListener(
-            'click',
-            toggleTheme
+        button.setAttribute(
+            "data-theme-toggle",
+            ""
         );
 
-        document.body.appendChild(
-            button
+        button.setAttribute(
+            "aria-label",
+            "Switch theme"
         );
 
-        updateButton();
+        button.setAttribute(
+            "title",
+            "Switch theme"
+        );
 
+        document.body.appendChild(button);
     }
 
 
-    if (
-        document.readyState ===
-        'loading'
-    ) {
+    /* =====================================================
+       BIND BUTTONS
+       ===================================================== */
 
-        document.addEventListener(
-            'DOMContentLoaded',
-            createThemeButton
+    function bindThemeButtons() {
+        const buttons =
+            document.querySelectorAll(
+                ".theme-toggle, [data-theme-toggle]"
+            );
+
+        buttons.forEach(function (button) {
+            if (
+                button.dataset.themeBound === "1"
+            ) {
+                return;
+            }
+
+            button.dataset.themeBound = "1";
+
+            button.addEventListener(
+                "click",
+                function () {
+                    toggleTheme();
+                }
+            );
+        });
+
+        updateThemeButtons(
+            document.documentElement.classList.contains(
+                "dark-theme"
+            )
         );
+    }
 
-    } else {
 
-        createThemeButton();
+    /* =====================================================
+       APPLY BEFORE PAGE LOAD
+       ===================================================== */
 
+    applyTheme(
+        getStoredTheme()
+    );
+
+
+    /* =====================================================
+       DOM READY
+       ===================================================== */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+            createToggleIfMissing();
+            bindThemeButtons();
+        }
+    );
+
+
+    /* =====================================================
+       SUPPORT DYNAMICALLY ADDED BUTTONS
+       ===================================================== */
+
+    if (
+        typeof MutationObserver !== "undefined"
+    ) {
+        const observer =
+            new MutationObserver(
+                function () {
+                    bindThemeButtons();
+                }
+            );
+
+        observer.observe(
+            document.documentElement,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
     }
 
 })();
