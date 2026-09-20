@@ -369,74 +369,102 @@ New Image       : ${env.IMAGE_NAME}:${env.IMAGE_TAG}
                 }
             }
         }
-
+         
         stage('Deploy With Automatic Rollback') {
-            steps {
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'ec-2',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
-                    )
-                ]) {
-                    sh '''
-                        set -e
+    steps {
+        withCredentials([
+            sshUserPrivateKey(
+                credentialsId: 'ec-2',
+                keyFileVariable: 'SSH_KEY',
+                usernameVariable: 'SSH_USER'
+            )
+        ]) {
+            sh '''
+                set -e
 
-                        echo ""
-                        echo "=========================================="
-                        echo "DEPLOYMENT START"
-                        echo "=========================================="
-                        echo ""
+                echo ""
+                echo "=========================================="
+                echo "DEPLOYMENT START"
+                echo "=========================================="
+                echo ""
 
-                        ssh \
-                            -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=yes \
-                            -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
-                            -o IdentitiesOnly=yes \
-                            "$SSH_USER@$DEPLOY_SERVER" << EOF
+                echo "Jenkins deployment variables:"
+                echo "DEPLOYMENT_MODE=${DEPLOYMENT_MODE}"
+                echo "CURRENT_RELEASE=${CURRENT_RELEASE}"
+                echo "CURRENT_IMAGE=${CURRENT_IMAGE}"
+                echo "NEW_RELEASE=${NEW_RELEASE}"
+                echo "IMAGE_NAME=${IMAGE_NAME}"
+                echo "IMAGE_TAG=${IMAGE_TAG}"
+
+                IMAGE_ARCHIVE="${IMAGE_NAME}-${IMAGE_TAG}.tar.gz"
+
+                echo ""
+                echo "Expected archive:"
+                echo "${IMAGE_ARCHIVE}"
+
+                if [ ! -f "${IMAGE_ARCHIVE}" ]; then
+                    echo ""
+                    echo "ERROR: Deployment archive does not exist:"
+                    echo "${IMAGE_ARCHIVE}"
+                    exit 1
+                fi
+
+                echo ""
+                echo "Archive verified:"
+                ls -lh "${IMAGE_ARCHIVE}"
+
+                echo ""
+                echo "=========================================="
+                echo "REMOTE DEPLOYMENT"
+                echo "=========================================="
+
+                ssh \
+                    -i "$SSH_KEY" \
+                    -o StrictHostKeyChecking=yes \
+                    -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+                    -o IdentitiesOnly=yes \
+                    "$SSH_USER@$DEPLOY_SERVER" \
+                    "DEPLOY_PATH='${DEPLOY_PATH}' \
+                     APP_NAME='${APP_NAME}' \
+                     CONTAINER_NAME='${CONTAINER_NAME}' \
+                     IMAGE_NAME='${IMAGE_NAME}' \
+                     IMAGE_TAG='${IMAGE_TAG}' \
+                     HOST_PORT='${HOST_PORT}' \
+                     CONTAINER_PORT='${CONTAINER_PORT}' \
+                     CURRENT_RELEASE='${CURRENT_RELEASE}' \
+                     CURRENT_IMAGE='${CURRENT_IMAGE}' \
+                     NEW_RELEASE='${NEW_RELEASE}' \
+                     DEPLOYMENT_MODE='${DEPLOYMENT_MODE}' \
+                     bash -s" <<'REMOTE_SCRIPT'
 
 set -u
 
-DEPLOY_PATH="$DEPLOY_PATH"
-APP_NAME="$APP_NAME"
-CONTAINER_NAME="$CONTAINER_NAME"
+NEW_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 
-IMAGE_NAME="$IMAGE_NAME"
-IMAGE_TAG="$IMAGE_TAG"
+IMAGE_ARCHIVE="${DEPLOY_PATH}/releases/${IMAGE_NAME}-${IMAGE_TAG}.tar.gz"
 
-HOST_PORT="$HOST_PORT"
-CONTAINER_PORT="$CONTAINER_PORT"
+STATE_FILE="${DEPLOY_PATH}/release-state.env"
 
-CURRENT_RELEASE="$CURRENT_RELEASE"
-CURRENT_IMAGE="$CURRENT_IMAGE"
+MANIFEST_FILE="${DEPLOY_PATH}/manifests/release-${NEW_RELEASE}.env"
 
-NEW_RELEASE="$NEW_RELEASE"
-NEW_IMAGE="$IMAGE_NAME:$IMAGE_TAG"
-
-DEPLOYMENT_MODE="$DEPLOYMENT_MODE"
-
-IMAGE_ARCHIVE="\$DEPLOY_PATH/releases/$IMAGE_NAME-$IMAGE_TAG.tar.gz"
-
-STATE_FILE="\$DEPLOY_PATH/release-state.env"
-
-MANIFEST_FILE="\$DEPLOY_PATH/manifests/release-$NEW_RELEASE.env"
-
+echo ""
 echo "=========================================="
 echo "REMOTE DEPLOYMENT INFORMATION"
 echo "=========================================="
 
-echo "Deployment Mode : \$DEPLOYMENT_MODE"
-echo "Current Release : \$CURRENT_RELEASE"
-echo "Current Image   : \$CURRENT_IMAGE"
-echo "New Release     : \$NEW_RELEASE"
-echo "New Image       : \$NEW_IMAGE"
+echo "Deployment Mode : ${DEPLOYMENT_MODE}"
+echo "Current Release : ${CURRENT_RELEASE}"
+echo "Current Image   : ${CURRENT_IMAGE}"
+echo "New Release     : ${NEW_RELEASE}"
+echo "New Image       : ${NEW_IMAGE}"
+echo "Image Archive   : ${IMAGE_ARCHIVE}"
 
 echo ""
 echo "=========================================="
 echo "Loading New Docker Image"
 echo "=========================================="
 
-if ! gunzip -c "\$IMAGE_ARCHIVE" | docker load; then
+if ! gunzip -c "${IMAGE_ARCHIVE}" | docker load; then
 
     echo ""
     echo "ERROR: Docker image load failed."
@@ -453,7 +481,7 @@ echo "=========================================="
 echo "Verifying New Docker Image"
 echo "=========================================="
 
-if ! docker image inspect "\$NEW_IMAGE" >/dev/null 2>&1; then
+if ! docker image inspect "${NEW_IMAGE}" >/dev/null 2>&1; then
 
     echo "ERROR: New Docker image does not exist after docker load."
 
@@ -467,23 +495,23 @@ echo "=========================================="
 echo "Preserving Previous Release"
 echo "=========================================="
 
-if ! docker image inspect "\$CURRENT_IMAGE" >/dev/null 2>&1; then
+if ! docker image inspect "${CURRENT_IMAGE}" >/dev/null 2>&1; then
 
-    echo "ERROR: Previous release image '\$CURRENT_IMAGE' does not exist."
+    echo "ERROR: Previous release image '${CURRENT_IMAGE}' does not exist."
     echo "Deployment stopped for safety."
 
     exit 1
 fi
 
 echo "Previous release image verified:"
-echo "\$CURRENT_IMAGE"
+echo "${CURRENT_IMAGE}"
 
 echo ""
 echo "=========================================="
 echo "Stopping Current Container"
 echo "=========================================="
 
-docker rm -f "\$CONTAINER_NAME" 2>/dev/null || true
+docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 
 echo "Current container stopped."
 
@@ -495,10 +523,10 @@ echo "=========================================="
 NEW_CONTAINER_STARTED=0
 
 if docker run -d \
-    --name "\$CONTAINER_NAME" \
+    --name "${CONTAINER_NAME}" \
     --restart unless-stopped \
-    -p "\$HOST_PORT:\$CONTAINER_PORT" \
-    "\$NEW_IMAGE"; then
+    -p "${HOST_PORT}:${CONTAINER_PORT}" \
+    "${NEW_IMAGE}"; then
 
     NEW_CONTAINER_STARTED=1
 
@@ -517,7 +545,7 @@ echo "=========================================="
 
 HEALTH_OK=0
 
-if [ "\$NEW_CONTAINER_STARTED" -eq 1 ]; then
+if [ "${NEW_CONTAINER_STARTED}" -eq 1 ]; then
 
     echo "Waiting for application to initialize..."
 
@@ -527,7 +555,7 @@ if [ "\$NEW_CONTAINER_STARTED" -eq 1 ]; then
         --fail \
         --silent \
         --show-error \
-        "http://127.0.0.1:\$HOST_PORT/" \
+        "http://127.0.0.1:${HOST_PORT}/" \
         > /dev/null; then
 
         HEALTH_OK=1
@@ -551,7 +579,7 @@ echo "=========================================="
 echo "ROLLBACK DECISION"
 echo "=========================================="
 
-if [ "\$DEPLOYMENT_MODE" = "ROLLBACK_TEST" ]; then
+if [ "${DEPLOYMENT_MODE}" = "ROLLBACK_TEST" ]; then
 
     echo ""
     echo "ROLLBACK_TEST mode enabled."
@@ -561,7 +589,7 @@ if [ "\$DEPLOYMENT_MODE" = "ROLLBACK_TEST" ]; then
     HEALTH_OK=0
 fi
 
-if [ "\$HEALTH_OK" -eq 1 ]; then
+if [ "${HEALTH_OK}" -eq 1 ]; then
 
     echo ""
     echo "=========================================="
@@ -570,11 +598,11 @@ if [ "\$HEALTH_OK" -eq 1 ]; then
 
     echo "Updating release state..."
 
-    cat > "\$STATE_FILE" << STATE_EOF
-CURRENT_RELEASE=\$NEW_RELEASE
-CURRENT_IMAGE=\$NEW_IMAGE
-PREVIOUS_RELEASE=\$CURRENT_RELEASE
-PREVIOUS_IMAGE=\$CURRENT_IMAGE
+    cat > "${STATE_FILE}" << STATE_EOF
+CURRENT_RELEASE=${NEW_RELEASE}
+CURRENT_IMAGE=${NEW_IMAGE}
+PREVIOUS_RELEASE=${CURRENT_RELEASE}
+PREVIOUS_IMAGE=${CURRENT_IMAGE}
 STATE_EOF
 
     echo "Release state updated."
@@ -582,30 +610,30 @@ STATE_EOF
     echo ""
     echo "Creating release manifest..."
 
-    cat > "\$MANIFEST_FILE" << MANIFEST_EOF
-RELEASE=\$NEW_RELEASE
-IMAGE=\$NEW_IMAGE
-PREVIOUS_RELEASE=\$CURRENT_RELEASE
-PREVIOUS_IMAGE=\$CURRENT_IMAGE
-DEPLOYMENT_MODE=\$DEPLOYMENT_MODE
-DEPLOYMENT_TIMESTAMP=\$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+    cat > "${MANIFEST_FILE}" << MANIFEST_EOF
+RELEASE=${NEW_RELEASE}
+IMAGE=${NEW_IMAGE}
+PREVIOUS_RELEASE=${CURRENT_RELEASE}
+PREVIOUS_IMAGE=${CURRENT_IMAGE}
+DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+DEPLOYMENT_TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 MANIFEST_EOF
 
     echo "Release manifest created:"
-    cat "\$MANIFEST_FILE"
+    cat "${MANIFEST_FILE}"
 
     echo ""
     echo "Removing deployment archive..."
 
-    rm -f "\$IMAGE_ARCHIVE"
+    rm -f "${IMAGE_ARCHIVE}"
 
     echo ""
     echo "=========================================="
     echo "DEPLOYMENT SUCCESSFUL"
     echo "=========================================="
 
-    echo "Active Release : \$NEW_RELEASE"
-    echo "Active Image   : \$NEW_IMAGE"
+    echo "Active Release : ${NEW_RELEASE}"
+    echo "Active Image   : ${NEW_IMAGE}"
 
     exit 0
 fi
@@ -618,16 +646,16 @@ echo "=========================================="
 echo "New release failed health validation."
 echo "Removing failed release..."
 
-docker rm -f "\$CONTAINER_NAME" 2>/dev/null || true
+docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 
 echo ""
 echo "Starting previous release..."
 
 if ! docker run -d \
-    --name "\$CONTAINER_NAME" \
+    --name "${CONTAINER_NAME}" \
     --restart unless-stopped \
-    -p "\$HOST_PORT:\$CONTAINER_PORT" \
-    "\$CURRENT_IMAGE"; then
+    -p "${HOST_PORT}:${CONTAINER_PORT}" \
+    "${CURRENT_IMAGE}"; then
 
     echo ""
     echo "CRITICAL ERROR:"
@@ -652,7 +680,7 @@ if ! curl \
     --fail \
     --silent \
     --show-error \
-    "http://127.0.0.1:\$HOST_PORT/" \
+    "http://127.0.0.1:${HOST_PORT}/" \
     > /dev/null; then
 
     echo ""
@@ -674,9 +702,9 @@ echo "Previous release is healthy."
 echo ""
 echo "Verifying release state..."
 
-echo "Expected current release : \$CURRENT_RELEASE"
+echo "Expected current release : ${CURRENT_RELEASE}"
 
-if grep -q "^CURRENT_RELEASE=\$CURRENT_RELEASE\$" "\$STATE_FILE"; then
+if grep -q "^CURRENT_RELEASE=${CURRENT_RELEASE}$" "${STATE_FILE}"; then
 
     echo "Release state remains on previous release."
 
@@ -690,17 +718,17 @@ fi
 echo ""
 echo "Removing failed deployment archive..."
 
-rm -f "\$IMAGE_ARCHIVE"
+rm -f "${IMAGE_ARCHIVE}"
 
 echo ""
 echo "=========================================="
 echo "ROLLBACK COMPLETE"
 echo "=========================================="
 
-echo "Restored Release : \$CURRENT_RELEASE"
-echo "Restored Image   : \$CURRENT_IMAGE"
+echo "Restored Release : ${CURRENT_RELEASE}"
+echo "Restored Image   : ${CURRENT_IMAGE}"
 
-if [ "\$DEPLOYMENT_MODE" = "ROLLBACK_TEST" ]; then
+if [ "${DEPLOYMENT_MODE}" = "ROLLBACK_TEST" ]; then
 
     echo ""
     echo "=========================================="
@@ -720,12 +748,11 @@ echo "Deployment failed and previous release was restored."
 
 exit 1
 
-EOF
-                    '''
-                }
-            }
+REMOTE_SCRIPT
+            '''
         }
-
+    }
+}
         stage('Verify Production Release') {
             when {
                 expression {
