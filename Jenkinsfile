@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_SERVER  = '13.60.166.127'
+        DEPLOY_SERVER  = '172.31.42.19'
         DEPLOY_USER    = 'ubuntu'
 
         APP_NAME       = 'credential-manager'
