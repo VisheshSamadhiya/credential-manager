@@ -1,25 +1,16 @@
 services:
-
   credential-manager:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: credential-manager
-
     ports:
       - "8088:80"
 
     env_file:
       - .env
 
-    networks:
-      - database
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     restart: unless-stopped
-
-
-networks:
-
-  database:
-    external: true
