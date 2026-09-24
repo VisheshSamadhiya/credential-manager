@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/encryption.php';
 require_once __DIR__ . '/../config/database.php';
@@ -10,7 +12,7 @@ requireLogin();
 
 /*
 |--------------------------------------------------------------------------
-| Admin Permission
+| Permission Check
 |--------------------------------------------------------------------------
 */
 
@@ -37,7 +39,10 @@ $credentialId = isset($_GET['id'])
 
 if ($credentialId <= 0) {
 
-    header('Location: /credentials.php');
+    header(
+        'Location: /credentials.php'
+    );
+
     exit;
 }
 
@@ -49,8 +54,8 @@ if ($credentialId <= 0) {
 */
 
 $stmt = $pdo->prepare(
-
-    "SELECT
+    "
+    SELECT
         credentials.*,
         employees.employee_name,
         departments.department_name
@@ -63,14 +68,12 @@ $stmt = $pdo->prepare(
     LEFT JOIN departments
         ON employees.department_id = departments.id
 
-    WHERE credentials.id = :id"
-
+    WHERE credentials.id = :id
+    "
 );
 
 $stmt->execute([
-
     ':id' => $credentialId
-
 ]);
 
 $credential = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -78,7 +81,10 @@ $credential = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$credential) {
 
-    header('Location: /credentials.php');
+    header(
+        'Location: /credentials.php'
+    );
+
     exit;
 }
 
@@ -86,6 +92,17 @@ if (!$credential) {
 /*
 |--------------------------------------------------------------------------
 | Update Credential
+|--------------------------------------------------------------------------
+|
+| IMPORTANT:
+|
+| The existing encrypted password is NEVER placed into the HTML form.
+|
+| Password field behavior:
+|
+| - Blank  = keep existing password
+| - Filled = encrypt new password and replace existing password
+|
 |--------------------------------------------------------------------------
 */
 
@@ -106,85 +123,176 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_POST['credential_username'] ?? ''
     );
 
-    $credentialPassword = $_POST[
-        'credential_password'
-    ] ?? '';
+    $credentialPassword =
+        $_POST['credential_password'] ?? '';
 
     $notes = trim(
         $_POST['notes'] ?? ''
     );
 
 
-    if (
-        $serviceName === ''
-        ||
-        $credentialPassword === ''
-    ) {
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    if ($serviceName === '') {
 
         $error =
-            'Service name and password are required.';
+            'Service name is required.';
 
     } else {
 
         try {
 
-            $updateStmt = $pdo->prepare(
+            /*
+            |--------------------------------------------------------------------------
+            | Password Changed
+            |--------------------------------------------------------------------------
+            |
+            | Only encrypt a password when the administrator actually
+            | entered a new password.
+            |
+            |--------------------------------------------------------------------------
+            */
 
-                "UPDATE credentials
+            if ($credentialPassword !== '') {
 
-                SET
-
-                    service_name =
-                        :service_name,
-
-                    service_url =
-                        :service_url,
-
-                    credential_username =
-                        :credential_username,
-
-                    credential_password =
-                        :credential_password,
-
-                    notes =
-                        :notes,
-
-                    change_comment =
-                        :change_comment,
-
-                    is_new_version = 0
-
-                WHERE id = :id"
-
-            );
+                $encryptedCredentialPassword =
+                    encryptCredential(
+                        $credentialPassword
+                    );
 
 
-            $encryptedCredentialPassword = encryptCredential($credentialPassword);
+                $updateStmt = $pdo->prepare(
+                    "
+                    UPDATE credentials
 
-            $updateStmt->execute([
+                    SET
+                        service_name =
+                            :service_name,
 
-                ':service_name' =>
-                    $serviceName,
+                        service_url =
+                            :service_url,
 
-                ':service_url' =>
-                    $serviceUrl ?: null,
+                        credential_username =
+                            :credential_username,
 
-                ':credential_username' =>
-                    $credentialUsername ?: null,
+                        credential_password =
+                            :credential_password,
 
-                ':credential_password' =>
-                    $encryptedCredentialPassword,
+                        notes =
+                            :notes,
 
-                ':notes' =>
-                    $notes ?: null,
+                        change_comment =
+                            :change_comment,
 
-                ':change_comment' =>
-                    'Credential updated by administrator.',
+                        is_new_version = 0
 
-                ':id' =>
-                    $credentialId
+                    WHERE id = :id
+                    "
+                );
 
-            ]);
+
+                $updateStmt->execute([
+
+                    ':service_name' =>
+                        $serviceName,
+
+                    ':service_url' =>
+                        $serviceUrl !== ''
+                            ? $serviceUrl
+                            : null,
+
+                    ':credential_username' =>
+                        $credentialUsername !== ''
+                            ? $credentialUsername
+                            : null,
+
+                    ':credential_password' =>
+                        $encryptedCredentialPassword,
+
+                    ':notes' =>
+                        $notes !== ''
+                            ? $notes
+                            : null,
+
+                    ':change_comment' =>
+                        'Credential password updated by administrator.',
+
+                    ':id' =>
+                        $credentialId
+
+                ]);
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Password NOT Changed
+                |--------------------------------------------------------------------------
+                |
+                | Keep the existing encrypted password exactly as it is.
+                |
+                |--------------------------------------------------------------------------
+                */
+
+                $updateStmt = $pdo->prepare(
+                    "
+                    UPDATE credentials
+
+                    SET
+                        service_name =
+                            :service_name,
+
+                        service_url =
+                            :service_url,
+
+                        credential_username =
+                            :credential_username,
+
+                        notes =
+                            :notes,
+
+                        change_comment =
+                            :change_comment,
+
+                        is_new_version = 0
+
+                    WHERE id = :id
+                    "
+                );
+
+
+                $updateStmt->execute([
+
+                    ':service_name' =>
+                        $serviceName,
+
+                    ':service_url' =>
+                        $serviceUrl !== ''
+                            ? $serviceUrl
+                            : null,
+
+                    ':credential_username' =>
+                        $credentialUsername !== ''
+                            ? $credentialUsername
+                            : null,
+
+                    ':notes' =>
+                        $notes !== ''
+                            ? $notes
+                            : null,
+
+                    ':change_comment' =>
+                        'Credential details updated by administrator. Password unchanged.',
+
+                    ':id' =>
+                        $credentialId
+
+                ]);
+            }
 
 
             /*
@@ -193,14 +301,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             |--------------------------------------------------------------------------
             */
 
+            $logDescription =
+                $credentialPassword !== ''
+                    ? 'Administrator updated credential and changed password: '
+                        . $serviceName
+                    : 'Administrator updated credential details; password unchanged: '
+                        . $serviceName;
+
+
             logActivity(
 
                 $pdo,
 
                 'credential_updated',
 
-                'Administrator updated credential: '
-                . $serviceName,
+                $logDescription,
 
                 $credential['employee_id']
                     ? (int) $credential['employee_id']
@@ -211,21 +326,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Redirect
+            |--------------------------------------------------------------------------
+            */
+
             header(
                 'Location: /credentials.php?updated=1'
             );
 
             exit;
 
-        } catch (PDOException $e) {
+
+        } catch (Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Server-Side Error Logging
+            |--------------------------------------------------------------------------
+            */
+
+            error_log(
+                'Credential update failed: '
+                . $e->getMessage()
+            );
+
 
             $error =
                 'Unable to update the credential.';
-
         }
-
     }
-
 }
 
 ?>
@@ -369,6 +500,22 @@ textarea {
 
 }
 
+.password-info {
+
+    background: #fff3cd;
+
+    color: #664d03;
+
+    padding: 12px;
+
+    border-radius: 6px;
+
+    margin-top: 10px;
+
+    font-size: 13px;
+
+}
+
 .back {
 
     display: inline-block;
@@ -381,7 +528,10 @@ textarea {
 
 </style>
 
-    <link rel="stylesheet" href="/assets/theme.css">
+<link
+    rel="stylesheet"
+    href="/assets/theme.css"
+>
 
 </head>
 
@@ -437,10 +587,12 @@ textarea {
     <strong>Employee:</strong>
 
     <?php
+
     echo htmlspecialchars(
         $credential['employee_name']
         ?? 'Not assigned'
     );
+
     ?>
 
     <br><br>
@@ -449,10 +601,12 @@ textarea {
     <strong>Department:</strong>
 
     <?php
+
     echo htmlspecialchars(
         $credential['department_name']
         ?? 'Not assigned'
     );
+
     ?>
 
 </div>
@@ -463,7 +617,11 @@ textarea {
 <div class="error">
 
     <?php
-    echo htmlspecialchars($error);
+
+    echo htmlspecialchars(
+        $error
+    );
+
     ?>
 
 </div>
@@ -482,9 +640,11 @@ textarea {
     type="text"
     name="service_name"
     value="<?php
+
         echo htmlspecialchars(
             $credential['service_name']
         );
+
     ?>"
     required
 >
@@ -498,10 +658,12 @@ textarea {
     type="url"
     name="service_url"
     value="<?php
+
         echo htmlspecialchars(
             $credential['service_url']
             ?? ''
         );
+
     ?>"
 >
 
@@ -514,29 +676,33 @@ textarea {
     type="text"
     name="credential_username"
     value="<?php
+
         echo htmlspecialchars(
             $credential['credential_username']
             ?? ''
         );
+
     ?>"
 >
 
 
 <label>
-    Password *
+    New Password
 </label>
 
 <input
-    type="text"
+    type="password"
     name="credential_password"
-    value="<?php
-        echo htmlspecialchars(
-            $credential['credential_password']
-            ?? ''
-        );
-    ?>"
-    required
+    placeholder="Leave blank to keep the current password"
+    autocomplete="new-password"
 >
+
+<div class="password-info">
+
+    Leave this field blank if you do not want to change
+    the existing credential password.
+
+</div>
 
 
 <label>
@@ -546,10 +712,12 @@ textarea {
 <textarea
     name="notes"
 ><?php
+
     echo htmlspecialchars(
         $credential['notes']
         ?? ''
     );
+
 ?></textarea>
 
 
@@ -568,7 +736,8 @@ textarea {
 
 </div>
 
-    <script src="/assets/theme.js"></script>
+
+<script src="/assets/theme.js"></script>
 
 </body>
 
