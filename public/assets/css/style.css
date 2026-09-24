@@ -1,0 +1,540 @@
+/* =========================================================
+   Credential Manager
+   Shared CSS
+   ========================================================= */
+
+
+/* =========================================================
+   Global
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    background:
+        #f4f6f9;
+
+    color:
+        #333;
+}
+
+
+/* =========================================================
+   Navbar
+   ========================================================= */
+
+.navbar {
+
+    background:
+        #2b2b2b;
+
+    padding:
+        18px 40px;
+
+    color:
+        white;
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+}
+
+
+.navbar-title {
+
+    font-size:
+        18px;
+
+    font-weight:
+        bold;
+
+}
+
+
+.navbar-links {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        22px;
+
+}
+
+
+.navbar a {
+
+    color:
+        white;
+
+    text-decoration:
+        none;
+
+}
+
+
+.navbar a:hover {
+
+    text-decoration:
+        underline;
+
+}
+
+
+/* =========================================================
+   Main Container
+   ========================================================= */
+
+.container {
+
+    max-width:
+        750px;
+
+    margin:
+        40px auto;
+
+    padding:
+        30px;
+
+    background:
+        white;
+
+    border-radius:
+        12px;
+
+    box-shadow:
+        0 5px 20px
+        rgba(
+            0,
+            0,
+            0,
+            0.08
+        );
+
+}
+
+
+/* =========================================================
+   Back Button
+   ========================================================= */
+
+.back {
+
+    display:
+        inline-block;
+
+    margin-bottom:
+        25px;
+
+    text-decoration:
+        none;
+
+    color:
+        #333;
+
+    font-weight:
+        bold;
+
+}
+
+
+.back:hover {
+
+    text-decoration:
+        underline;
+
+}
+
+
+/* =========================================================
+   Information Box
+   ========================================================= */
+
+.info-box {
+
+    background:
+        #f1f3f5;
+
+    padding:
+        20px;
+
+    border-radius:
+        8px;
+
+    margin-bottom:
+        25px;
+
+    line-height:
+        1.7;
+
+}
+
+
+/* =========================================================
+   Notice
+   ========================================================= */
+
+.notice {
+
+    background:
+        #e7f3ff;
+
+    color:
+        #004085;
+
+    padding:
+        15px;
+
+    border-radius:
+        6px;
+
+    margin-bottom:
+        25px;
+
+    line-height:
+        1.6;
+
+}
+
+
+/* =========================================================
+   Error
+   ========================================================= */
+
+.error {
+
+    background:
+        #ffe5e5;
+
+    color:
+        #b00020;
+
+    padding:
+        15px;
+
+    border-radius:
+        6px;
+
+    margin-bottom:
+        20px;
+
+    line-height:
+        1.5;
+
+}
+
+
+/* =========================================================
+   Forms
+   ========================================================= */
+
+label {
+
+    display:
+        block;
+
+    margin-top:
+        20px;
+
+    margin-bottom:
+        8px;
+
+    font-weight:
+        bold;
+
+}
+
+
+input,
+textarea {
+
+    width:
+        100%;
+
+    padding:
+        13px;
+
+    border:
+        1px solid #ccc;
+
+    border-radius:
+        6px;
+
+    font-size:
+        14px;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+}
+
+
+input:focus,
+textarea:focus {
+
+    outline:
+        none;
+
+    border-color:
+        #555;
+
+}
+
+
+textarea {
+
+    min-height:
+        110px;
+
+    resize:
+        vertical;
+
+}
+
+
+/* =========================================================
+   Password Wrapper
+   ========================================================= */
+
+.password-wrapper {
+
+    position:
+        relative;
+
+}
+
+
+.password-wrapper input {
+
+    padding-right:
+        100px;
+
+}
+
+
+.toggle-password {
+
+    position:
+        absolute;
+
+    right:
+        8px;
+
+    top:
+        50%;
+
+    transform:
+        translateY(-50%);
+
+    border:
+        none;
+
+    background:
+        #eeeeee;
+
+    padding:
+        8px 10px;
+
+    border-radius:
+        5px;
+
+    cursor:
+        pointer;
+
+    color:
+        #333;
+
+    font-size:
+        13px;
+
+}
+
+
+.toggle-password:hover {
+
+    background:
+        #dddddd;
+
+}
+
+
+/* =========================================================
+   Password Tools
+   ========================================================= */
+
+.password-tools {
+
+    display:
+        flex;
+
+    gap:
+        10px;
+
+    margin-top:
+        10px;
+
+}
+
+
+.generate-button {
+
+    background:
+        #555;
+
+    color:
+        white;
+
+    border:
+        none;
+
+    padding:
+        10px 15px;
+
+    border-radius:
+        5px;
+
+    cursor:
+        pointer;
+
+    font-size:
+        14px;
+
+}
+
+
+.generate-button:hover {
+
+    background:
+        #333;
+
+}
+
+
+/* =========================================================
+   Password Strength
+   ========================================================= */
+
+.strength {
+
+    margin-top:
+        10px;
+
+    font-size:
+        14px;
+
+    font-weight:
+        bold;
+
+    min-height:
+        20px;
+
+}
+
+
+/* =========================================================
+   Save Button
+   ========================================================= */
+
+.save-button {
+
+    margin-top:
+        30px;
+
+    background:
+        #333;
+
+    color:
+        white;
+
+    border:
+        none;
+
+    padding:
+        14px 25px;
+
+    border-radius:
+        6px;
+
+    font-size:
+        15px;
+
+    cursor:
+        pointer;
+
+}
+
+
+.save-button:hover {
+
+    background:
+        #555;
+
+}
+
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (
+    max-width: 700px
+) {
+
+    .navbar {
+
+        flex-direction:
+            column;
+
+        align-items:
+            flex-start;
+
+        gap:
+            15px;
+
+        padding:
+            20px;
+
+    }
+
+
+    .navbar-links {
+
+        flex-wrap:
+            wrap;
+
+        gap:
+            15px;
+
+    }
+
+
+    .container {
+
+        margin:
+            20px 15px;
+
+        padding:
+            20px;
+
+    }
+
+}

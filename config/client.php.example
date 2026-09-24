@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+
+/*
+ * Copy this file to client.php and replace every placeholder.
+ * Keep this file outside the public/ document root.
+ */
+
+return [
+    'db_host' => 'localhost',
+    'db_port' => 3306,
+    'db_name' => 'CPANEL_DATABASE_NAME',
+    'db_user' => 'CPANEL_DATABASE_USER',
+    'db_password' => 'CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD',
+
+    // Generate with: openssl rand -base64 32
+    // Losing this key makes encrypted credential secrets unrecoverable.
+    'credential_encryption_key' => 'PASTE_GENERATED_BASE64_KEY_HERE',
+];

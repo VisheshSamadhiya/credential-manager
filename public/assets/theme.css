@@ -1,0 +1,1173 @@
+/*
+ * ============================================================
+ * CREDENTIAL MANAGER
+ * GLOBAL THEME SYSTEM
+ * ============================================================
+ */
+
+:root {
+    --cm-bg: #0d0717;
+    --cm-bg-soft: #130b20;
+
+    --cm-surface: #1a1028;
+    --cm-surface-2: #211532;
+    --cm-surface-3: #291a3d;
+
+    --cm-border: #49305f;
+    --cm-border-soft: #382447;
+
+    --cm-text: #f7f2ff;
+    --cm-text-soft: #ddd2e9;
+    --cm-muted: #a99bb8;
+
+    --cm-purple: #8b5cf6;
+    --cm-purple-light: #c084fc;
+    --cm-pink: #ec4899;
+
+    --cm-input: #120b1c;
+    --cm-input-border: #55356e;
+
+    --cm-gradient:
+        linear-gradient(
+            135deg,
+            #6d28d9 0%,
+            #8b5cf6 48%,
+            #db2777 100%
+        );
+
+    --cm-shadow:
+        0 18px 50px rgba(0, 0, 0, .35);
+}
+
+
+/* ============================================================
+   BASE
+   ============================================================ */
+
+html {
+    color-scheme: dark;
+}
+
+html.dark-theme {
+    color-scheme: dark;
+}
+
+html.light-theme {
+    color-scheme: light;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--cm-bg) !important;
+    color: var(--cm-text) !important;
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    transition:
+        background-color .25s ease,
+        color .25s ease;
+}
+
+
+/* ============================================================
+   DARK MODE BASE
+   ============================================================ */
+
+html.dark-theme body {
+    background:
+        radial-gradient(
+            circle at 15% 15%,
+            rgba(124, 58, 237, .10),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 85% 85%,
+            rgba(236, 72, 153, .08),
+            transparent 28%
+        ),
+        #0d0717 !important;
+
+    color: #f7f2ff !important;
+}
+
+html.dark-theme main,
+html.dark-theme section,
+html.dark-theme article,
+html.dark-theme aside,
+html.dark-theme header,
+html.dark-theme footer,
+html.dark-theme nav,
+html.dark-theme form,
+html.dark-theme fieldset {
+    color: var(--cm-text);
+}
+
+
+/* ============================================================
+   HEADINGS
+   ============================================================ */
+
+html.dark-theme h1,
+html.dark-theme h2,
+html.dark-theme h3,
+html.dark-theme h4,
+html.dark-theme h5,
+html.dark-theme h6 {
+    color: var(--cm-text) !important;
+}
+
+html.dark-theme p {
+    color: var(--cm-muted);
+}
+
+
+/* ============================================================
+   COMMON CARDS
+   ============================================================ */
+
+html.dark-theme .card,
+html.dark-theme .panel,
+html.dark-theme .container,
+html.dark-theme .content-card,
+html.dark-theme .form-card,
+html.dark-theme .table-card,
+html.dark-theme .search-card,
+html.dark-theme .search-panel,
+html.dark-theme .modal-content,
+html.dark-theme .modal,
+html.dark-theme .box,
+html.dark-theme .section-card,
+html.dark-theme .stat-card {
+    background: var(--cm-surface) !important;
+    color: var(--cm-text) !important;
+    border-color: var(--cm-border) !important;
+    box-shadow: var(--cm-shadow);
+}
+
+
+/* ============================================================
+   TOPBAR / HEADERS
+   ============================================================ */
+
+html.dark-theme .topbar,
+html.dark-theme .header,
+html.dark-theme .navbar,
+html.dark-theme .page-header {
+    background:
+        rgba(13, 7, 23, .96) !important;
+
+    color: var(--cm-text) !important;
+    border-color: var(--cm-border) !important;
+}
+
+
+/* ============================================================
+   TEXT
+   ============================================================ */
+
+html.dark-theme .page-title,
+html.dark-theme .panel-title,
+html.dark-theme .card-title,
+html.dark-theme .section-title,
+html.dark-theme .stat-label,
+html.dark-theme .stat-number,
+html.dark-theme .service-name,
+html.dark-theme .user-name,
+html.dark-theme label,
+html.dark-theme th {
+    color: var(--cm-text) !important;
+}
+
+html.dark-theme .muted,
+html.dark-theme .text-muted,
+html.dark-theme .subtitle,
+html.dark-theme .description,
+html.dark-theme .service-meta,
+html.dark-theme .user-role,
+html.dark-theme small {
+    color: var(--cm-muted) !important;
+}
+
+html.dark-theme a {
+    color: var(--cm-purple-light);
+}
+
+html.dark-theme a:hover {
+    color: #f472b6;
+}
+
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+
+html.dark-theme input,
+html.dark-theme textarea,
+html.dark-theme select,
+html.dark-theme .search-input,
+html.dark-theme .form-control {
+    background: var(--cm-input) !important;
+    color: var(--cm-text) !important;
+    border: 1px solid var(--cm-input-border) !important;
+}
+
+html.dark-theme input::placeholder,
+html.dark-theme textarea::placeholder,
+html.dark-theme .search-input::placeholder {
+    color: #8f819d !important;
+}
+
+html.dark-theme input:focus,
+html.dark-theme textarea:focus,
+html.dark-theme select:focus,
+html.dark-theme .search-input:focus {
+    background: #160d22 !important;
+    color: var(--cm-text) !important;
+    border-color: var(--cm-purple) !important;
+    outline: none !important;
+    box-shadow:
+        0 0 0 3px rgba(139, 92, 246, .14) !important;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+html.dark-theme button:not(.theme-toggle),
+html.dark-theme .btn {
+    color: var(--cm-text);
+}
+
+html.dark-theme .btn-secondary,
+html.dark-theme .btn-light,
+html.dark-theme .secondary-button,
+html.dark-theme .clear-button {
+    background: var(--cm-surface-2) !important;
+    color: var(--cm-text-soft) !important;
+    border: 1px solid var(--cm-border) !important;
+}
+
+html.dark-theme .btn-secondary:hover,
+html.dark-theme .btn-light:hover,
+html.dark-theme .secondary-button:hover,
+html.dark-theme .clear-button:hover {
+    background: var(--cm-surface-3) !important;
+    color: #ffffff !important;
+    border-color: #76509a !important;
+}
+
+html.dark-theme .btn-primary,
+html.dark-theme .primary-button,
+html.dark-theme .action-button:first-child {
+    background: var(--cm-gradient) !important;
+    color: #ffffff !important;
+    border-color: transparent !important;
+}
+
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+html.dark-theme table {
+    color: var(--cm-text) !important;
+    background: var(--cm-surface) !important;
+}
+
+html.dark-theme thead,
+html.dark-theme .table-header,
+html.dark-theme th {
+    background: #35145c !important;
+    color: #ffffff !important;
+}
+
+html.dark-theme td {
+    background: var(--cm-surface) !important;
+    color: var(--cm-text-soft) !important;
+    border-color: #3b2948 !important;
+}
+
+html.dark-theme tbody tr:hover td {
+    background: #261735 !important;
+}
+
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+html.dark-theme .badge,
+html.dark-theme .department-badge,
+html.dark-theme .role-badge,
+html.dark-theme .status-badge,
+html.dark-theme .tag {
+    border-color: #654080 !important;
+}
+
+html.dark-theme .department-badge {
+    background: #32194b !important;
+    color: #e9d5ff !important;
+}
+
+html.dark-theme .department-badge:hover {
+    background: #f3e8ff !important;
+    color: #6d28d9 !important;
+}
+
+
+/* ============================================================
+   CREDENTIAL ROWS
+   ============================================================ */
+
+html.dark-theme .credential-item,
+html.dark-theme .employee-item,
+html.dark-theme .user-row,
+html.dark-theme .list-item {
+    background: var(--cm-surface) !important;
+    color: var(--cm-text) !important;
+    border-color: #3b2948 !important;
+}
+
+html.dark-theme .credential-item:hover,
+html.dark-theme .employee-item:hover,
+html.dark-theme .user-row:hover,
+html.dark-theme .list-item:hover {
+    background: #261735 !important;
+}
+
+html.dark-theme .password-field,
+html.dark-theme .masked-password,
+html.dark-theme .password-display {
+    background: #120b1c !important;
+    color: #e9d5ff !important;
+    border-color: var(--cm-input-border) !important;
+}
+
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+
+html.dark-theme .alert {
+    color: var(--cm-text) !important;
+}
+
+html.dark-theme .alert-warning {
+    background: #321d0b !important;
+    color: #fed7aa !important;
+    border-color: #7c4a16 !important;
+}
+
+html.dark-theme .alert-success {
+    background: #092d25 !important;
+    color: #a7f3d0 !important;
+    border-color: #17624e !important;
+}
+
+html.dark-theme .alert-danger,
+html.dark-theme .alert-error {
+    background: #35111b !important;
+    color: #fecdd3 !important;
+    border-color: #7f1d32 !important;
+}
+
+html.dark-theme .alert-info {
+    background: #171735 !important;
+    color: #c4b5fd !important;
+    border-color: #4c3b86 !important;
+}
+
+
+/* ============================================================
+   AUTHENTICATION PAGES
+   ============================================================ */
+
+.auth-page,
+.login-page,
+.two-factor-page {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+
+    padding: 40px 20px;
+
+    background:
+        radial-gradient(
+            circle at 20% 20%,
+            rgba(124, 58, 237, .14),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 80% 80%,
+            rgba(236, 72, 153, .10),
+            transparent 30%
+        ),
+        var(--cm-bg);
+}
+
+
+/* ============================================================
+   AUTH CONTAINER
+   ============================================================ */
+
+.auth-container {
+    width: 100%;
+    max-width: 470px;
+
+    margin: 0 auto;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* ============================================================
+   AUTH CARD
+   ============================================================ */
+
+.auth-card,
+.login-card,
+.two-factor-card {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 42px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #1a1028 0%,
+            #21132f 100%
+        ) !important;
+
+    color: var(--cm-text);
+
+    border: 1px solid #49305f;
+    border-radius: 22px;
+
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, .48),
+        0 0 0 1px rgba(139, 92, 246, .05);
+
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-card::before,
+.login-card::before,
+.two-factor-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 3px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #6d28d9,
+            #8b5cf6,
+            #ec4899
+        );
+}
+
+
+/* ============================================================
+   AUTH BRAND
+   ============================================================ */
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin-bottom: 34px;
+}
+
+.auth-brand-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #6d28d9,
+            #ec4899
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 12px 28px rgba(124, 58, 237, .28);
+}
+
+.auth-brand-text {
+    min-width: 0;
+}
+
+.auth-brand-text h1 {
+    margin: 0;
+
+    font-size: 25px;
+    line-height: 1.2;
+
+    font-weight: 750;
+    letter-spacing: -.4px;
+
+    color: #f8f5ff !important;
+}
+
+.auth-brand-text p {
+    margin: 6px 0 0;
+
+    font-size: 13px;
+    line-height: 1.4;
+
+    color: #a99bb8 !important;
+}
+
+
+/* ============================================================
+   AUTH HEADING
+   ============================================================ */
+
+.auth-heading {
+    margin-bottom: 28px;
+}
+
+.auth-heading h2 {
+    margin: 0 0 8px;
+
+    font-size: 28px;
+    line-height: 1.2;
+
+    font-weight: 700;
+
+    color: #ffffff !important;
+}
+
+.auth-heading p {
+    margin: 0;
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    color: #a99bb8 !important;
+}
+
+
+/* ============================================================
+   AUTH FORM
+   ============================================================ */
+
+.auth-form {
+    width: 100%;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    width: 100%;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    margin-bottom: 9px;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    color: #e9e0f4 !important;
+}
+
+.form-label-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #c084fc;
+}
+
+
+/* ============================================================
+   INPUT WRAPPER
+   ============================================================ */
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.input-wrapper .input-icon {
+    position: absolute;
+
+    left: 15px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #9d8bad;
+
+    pointer-events: none;
+
+    z-index: 2;
+}
+
+.input-wrapper input {
+    width: 100%;
+    height: 52px;
+
+    box-sizing: border-box;
+
+    padding:
+        0
+        15px
+        0
+        46px;
+
+    margin: 0;
+
+    border-radius: 11px !important;
+
+    background: #120b1c !important;
+    color: #f7f2ff !important;
+
+    border: 1px solid #55356e !important;
+
+    font-size: 14px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+.input-wrapper input::placeholder {
+    color: #81738e !important;
+}
+
+.input-wrapper input:hover {
+    border-color: #6d4a84 !important;
+}
+
+.input-wrapper input:focus {
+    background: #160d22 !important;
+
+    border-color: #8b5cf6 !important;
+
+    box-shadow:
+        0 0 0 3px rgba(139, 92, 246, .14) !important;
+}
+
+.input-wrapper:focus-within .input-icon {
+    color: #c084fc;
+}
+
+
+/* ============================================================
+   AUTH SUBMIT
+   ============================================================ */
+
+.auth-submit,
+.login-submit {
+    width: 100%;
+    min-height: 52px;
+
+    margin-top: 5px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    border: 0 !important;
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #6d28d9 0%,
+            #8b5cf6 48%,
+            #db2777 100%
+        ) !important;
+
+    color: #ffffff !important;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 12px 28px rgba(124, 58, 237, .24);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        filter .2s ease;
+}
+
+.auth-submit:hover,
+.login-submit:hover {
+    transform: translateY(-1px);
+
+    filter: brightness(1.08);
+
+    box-shadow:
+        0 16px 34px rgba(124, 58, 237, .34);
+}
+
+.auth-submit:active,
+.login-submit:active {
+    transform: translateY(0);
+}
+
+.auth-submit:focus-visible,
+.login-submit:focus-visible {
+    outline: 3px solid rgba(192, 132, 252, .35);
+    outline-offset: 3px;
+}
+
+.button-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   AUTH SECURITY INFORMATION
+   ============================================================ */
+
+.auth-security {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+
+    margin-top: 25px;
+    padding-top: 20px;
+
+    border-top: 1px solid #342342;
+
+    font-size: 12px;
+    line-height: 1.6;
+
+    color: #9688a4;
+}
+
+.security-icon {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    color: #a78bfa;
+}
+
+
+/* ============================================================
+   AUTH ALERTS
+   ============================================================ */
+
+.auth-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    margin-bottom: 20px;
+
+    padding: 12px 14px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.auth-alert .alert-icon {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   AUTH CARD DARK OVERRIDES
+   ============================================================ */
+
+html.dark-theme .auth-card,
+html.dark-theme .login-card,
+html.dark-theme .two-factor-card {
+    background:
+        linear-gradient(
+            145deg,
+            #1a1028 0%,
+            #21132f 100%
+        ) !important;
+
+    color: var(--cm-text) !important;
+
+    border-color: #49305f !important;
+
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, .48),
+        0 0 0 1px rgba(139, 92, 246, .05) !important;
+}
+
+html.dark-theme .auth-card h1,
+html.dark-theme .auth-card h2,
+html.dark-theme .login-card h1,
+html.dark-theme .login-card h2,
+html.dark-theme .two-factor-card h1,
+html.dark-theme .two-factor-card h2 {
+    color: #ffffff !important;
+}
+
+
+/* ============================================================
+   INLINE WHITE STYLES
+   ============================================================ */
+
+html.dark-theme [style*="background:#fff"],
+html.dark-theme [style*="background: #fff"],
+html.dark-theme [style*="background:#ffffff"],
+html.dark-theme [style*="background: #ffffff"],
+html.dark-theme [style*="background:white"],
+html.dark-theme [style*="background: white"],
+html.dark-theme [style*="background-color:#fff"],
+html.dark-theme [style*="background-color: #fff"],
+html.dark-theme [style*="background-color:#ffffff"],
+html.dark-theme [style*="background-color: #ffffff"],
+html.dark-theme [style*="background-color:white"],
+html.dark-theme [style*="background-color: white"] {
+    background: var(--cm-surface) !important;
+    color: var(--cm-text) !important;
+    border-color: var(--cm-border) !important;
+}
+
+
+/* ============================================================
+   INLINE DARK TEXT
+   ============================================================ */
+
+html.dark-theme [style*="color:#111"],
+html.dark-theme [style*="color: #111"],
+html.dark-theme [style*="color:#222"],
+html.dark-theme [style*="color: #222"],
+html.dark-theme [style*="color:#333"],
+html.dark-theme [style*="color: #333"],
+html.dark-theme [style*="color:#444"],
+html.dark-theme [style*="color: #444"],
+html.dark-theme [style*="color:black"],
+html.dark-theme [style*="color: black"] {
+    color: var(--cm-text) !important;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+html.dark-theme .sidebar {
+    background:
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(236, 72, 153, .18),
+            transparent 32%
+        ),
+        linear-gradient(
+            180deg,
+            #240047 0%,
+            #32105f 48%,
+            #170a2c 100%
+        ) !important;
+
+    color: #ffffff !important;
+    border-color: #452261 !important;
+}
+
+html.dark-theme .nav-link {
+    color: #ddd6fe !important;
+}
+
+html.dark-theme .nav-link:hover {
+    background: rgba(255, 255, 255, .09) !important;
+    color: #ffffff !important;
+}
+
+html.dark-theme .nav-link.active {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(139, 92, 246, .95),
+            rgba(236, 72, 153, .78)
+        ) !important;
+
+    color: #ffffff !important;
+}
+
+
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+
+.theme-toggle {
+    position: fixed;
+
+    right: 24px;
+    bottom: 24px;
+
+    z-index: 99999;
+
+    width: 52px;
+    height: 52px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: 1px solid rgba(216, 180, 254, .35);
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #db2777
+        );
+
+    color: #ffffff !important;
+
+    box-shadow:
+        0 12px 30px rgba(124, 58, 237, .35);
+
+    cursor: pointer;
+
+    font-size: 0;
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+.theme-toggle::before {
+    content: "";
+
+    width: 20px;
+    height: 20px;
+
+    border: 2px solid currentColor;
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 -10px 0 -8px currentColor,
+        0 10px 0 -8px currentColor,
+        10px 0 0 -8px currentColor,
+        -10px 0 0 -8px currentColor;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 16px 36px rgba(124, 58, 237, .45);
+}
+
+.theme-toggle:focus-visible {
+    outline: 3px solid rgba(192, 132, 252, .4);
+    outline-offset: 3px;
+}
+
+
+/* ============================================================
+   LIGHT THEME
+   ============================================================ */
+
+html.light-theme body {
+    background:
+        radial-gradient(
+            circle at 15% 15%,
+            rgba(124, 58, 237, .08),
+            transparent 30%
+        ),
+        #faf7ff !important;
+
+    color: #211532 !important;
+}
+
+html.light-theme .auth-page,
+html.light-theme .login-page,
+html.light-theme .two-factor-page {
+    background:
+        radial-gradient(
+            circle at 20% 20%,
+            rgba(124, 58, 237, .10),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 80% 80%,
+            rgba(236, 72, 153, .07),
+            transparent 30%
+        ),
+        #faf7ff;
+}
+
+html.light-theme .auth-card,
+html.light-theme .login-card,
+html.light-theme .two-factor-card {
+    background: #ffffff !important;
+
+    color: #211532 !important;
+
+    border-color: #e6dcef !important;
+
+    box-shadow:
+        0 25px 70px rgba(53, 32, 76, .12) !important;
+}
+
+html.light-theme .auth-brand-text h1,
+html.light-theme .auth-heading h2 {
+    color: #211532 !important;
+}
+
+html.light-theme .auth-brand-text p,
+html.light-theme .auth-heading p {
+    color: #756780 !important;
+}
+
+html.light-theme .form-group label {
+    color: #3b2948 !important;
+}
+
+html.light-theme .input-wrapper input {
+    background: #ffffff !important;
+
+    color: #211532 !important;
+
+    border-color: #d9cce3 !important;
+}
+
+html.light-theme .input-wrapper input::placeholder {
+    color: #9a8da5 !important;
+}
+
+html.light-theme .auth-security {
+    border-color: #eadff0;
+
+    color: #7b6c86;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 650px) {
+
+    .auth-page,
+    .login-page,
+    .two-factor-page {
+        padding: 24px 16px;
+    }
+
+    .auth-card,
+    .login-card,
+    .two-factor-card {
+        padding: 30px 24px;
+
+        border-radius: 18px;
+    }
+
+    .auth-brand {
+        margin-bottom: 28px;
+    }
+
+    .auth-brand-icon {
+        width: 46px;
+        height: 46px;
+
+        flex-basis: 46px;
+    }
+
+    .auth-brand-text h1 {
+        font-size: 22px;
+    }
+
+    .auth-heading h2 {
+        font-size: 25px;
+    }
+
+    .theme-toggle {
+        right: 16px;
+        bottom: 16px;
+
+        width: 48px;
+        height: 48px;
+    }
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
+}
