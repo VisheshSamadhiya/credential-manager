@@ -36,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Method Not Allowed');
 }
 
+if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    exit('Invalid CSRF token.');
+}
+
 /*
  * Validate credential ID.
  */
